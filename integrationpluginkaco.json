@@ -1,0 +1,50 @@
+{
+    "name": "Kaco",
+    "displayName": "Kaco",
+    "id": "2b767109-096a-40c5-882d-141df3f39d7b",
+    "vendors": [
+        {
+            "name": "kaco",
+            "displayName": "Kaco",
+            "id": "387e7968-467c-4ec6-ac1a-60484cb8d027",
+            "thingClasses": [
+                {
+                    "id": "93d3facb-5ef7-4aff-a7de-7d4ea5a207f3",
+                    "name": "kaco",
+                    "displayName": "Kaco inverter",
+                    "createMethods": ["discovery", "user"],
+                    "interfaces": ["connectable"],
+                    "paramTypes":[
+                        {
+                            "id": "85341bb8-1faa-423a-a196-9821d962c779",
+                            "name": "hostAddress",
+                            "displayName": "IP address",
+                            "type": "QString",
+                            "inputType": "IPv4Address",
+                            "defaultValue":"0.0.0.0"
+                        },
+                        {
+                            "id": "b6013e67-39d1-4154-906b-88ee5c779463",
+                            "name": "macAddress",
+                            "displayName": "MAC address",
+                            "type": "QString",
+                            "inputType": "TextLine",
+                            "defaultValue":"00:00:00:00:00:00"
+                        }
+                    ],
+                    "stateTypes": [
+                        {
+                            "id": "3dca6cd8-b73c-48f9-b803-a0f9138d5fb4",
+                            "name": "connected",
+                            "displayName": "Connected",
+                            "displayNameEvent": "Connected changed",
+                            "type": "bool",
+                            "defaultValue": false,
+                            "cached": false
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
