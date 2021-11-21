@@ -36,7 +36,7 @@
 
 IntegrationPluginKaco::IntegrationPluginKaco()
 {
-
+    KacoClient client(QHostAddress::LocalHost);
 }
 
 void IntegrationPluginKaco::discoverThings(ThingDiscoveryInfo *info)
@@ -117,8 +117,6 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
 
 
           */
-
-
 
     });
 
