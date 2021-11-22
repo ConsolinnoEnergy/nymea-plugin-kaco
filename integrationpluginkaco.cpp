@@ -102,7 +102,7 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
 
     QHostAddress hostAddress = QHostAddress(thing->paramValue(kacoThingHostAddressParamTypeId).toString());
 
-    KacoClient *client = new KacoClient(hostAddress, 9760, this);
+    KacoClient *client = new KacoClient(hostAddress, 9760, "%lisala99", this);
     connect(client, &KacoClient::connectedChanged, thing, [=](bool connected){
         qCDebug(dcKaco()) << thing << "connected changed" << connected;
         thing->setStateValue(kacoConnectedStateTypeId, connected);
@@ -114,7 +114,6 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
 
             --> (20 bytes) 55 aa 30 0b 00 13 05 00 00 7d f5 50 9f 8b 19 29 2d f6 c1 01
             <-- (66 bytes) ed de 30 39 00 46 0b 00 00 02 00 23 4b 05 09 06 00 1a b1 68 27 19 39 26 9c 02 00 1d cf 01 02 14 00 25 a1 32 30 31 32 31 30 32 34 35 35 37 38 20 20 20 20 20 20 20 20 ac 46 48 a8 b1 8e 02 00 00 01 00
-
 
           */
 

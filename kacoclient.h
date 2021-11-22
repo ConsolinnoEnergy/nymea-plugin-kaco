@@ -17,7 +17,7 @@ public:
     };
     Q_ENUM(State)
 
-    explicit KacoClient(const QHostAddress &hostAddress, quint16 port = 9760, QObject *parent = nullptr);
+    explicit KacoClient(const QHostAddress &hostAddress, quint16 port = 9760, const QString &password = "user", QObject *parent = nullptr);
 
     bool connected() const;
 
@@ -46,14 +46,25 @@ private:
 
     QTcpSocket *m_socket = nullptr;
     QHostAddress m_hostAddress;
-    quint16 m_port;
+    quint16 m_port = 9760;
     quint8 m_userId = 0;
-    quint32 m_userKey = 1965780472;
+    QString m_userPassword;
+    int m_userKey = 0;
 
     // Data reading
     QTimer m_refreshTimer;
     bool m_requestPending = false;
     int m_requestPendingTicks = 0;
+    int m_picCounter = 0;
+
+    // PIC information
+    quint8 m_picHighVersion = 0;
+    quint8 m_picLowVersion = 0;
+    quint8 m_userType = 0;
+    QByteArray m_mac;
+    QByteArray m_serialNumber;
+    QByteArray m_picRandomKey;
+    quint32 m_clientId = 0;
 
     // Inverter information
     float m_gridVoltagePhaseA = 0;
@@ -85,10 +96,11 @@ private:
 
     QByteArray generateRandomBytes(int count = 6);
 
-    quint16 getStringHash(const QString &name);
+    int calculateStringHashCode(const QString &name);
     quint32 calculateChecksum(const QByteArray &data);
 
     float convertRawValueToFloat(quint32 rawValue);
+    QByteArray convertUint32ToByteArrayLittleEndian(quint32 value);
 
 private slots:
     void refresh();

@@ -1,12 +1,16 @@
 #include "kacoclient.h"
 #include "extern-plugininfo.h"
 
+#include <QCryptographicHash>
 #include <QDataStream>
 
-KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, QObject *parent) :
+#include "math.h"
+
+KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QString &password, QObject *parent) :
     QObject(parent),
     m_hostAddress(hostAddress),
-    m_port(port)
+    m_port(port),
+    m_userPassword(password)
 {
     //qCDebug(dcKaco()) << m_privateKeyBase64;
     //m_privateKey = QByteArray::fromBase64(m_privateKeyBase64.toUtf8());
@@ -17,9 +21,18 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, QObject *p
 //    QByteArray picMessage = createMessagePic();
 //    qCDebug(dcKaco()) << byteArrayToHexString(picMessage);
 
-//    QString hashTestString("g_sync.u_l_rms[0]");
-//    qCDebug(dcKaco()) << "Hash test" << 0x7848 << hashTestString << qHash(hashTestString) << getStringHash(hashTestString);
+    qCDebug(dcKaco()) << "Userkey:" << "user" << calculateStringHashCode("user") << "%lisala99" << calculateStringHashCode("%lisala99");
 
+    QByteArray data;
+    QDataStream testStream(&data, QIODevice::ReadWrite);
+    testStream.setByteOrder(QDataStream::LittleEndian);
+    testStream << calculateStringHashCode("user");
+    qCDebug(dcKaco()) << "User key" << byteArrayToHexString(data);
+
+    sendPicRequest();
+    //qCDebug(dcKaco()) << calculateStringHashCode("abc");%lisala99
+//    QString hashTestString("g_sync.u_l_rms[0]");
+//    qCDebug(dcKaco()) << "Hash test" << 0x7848 << hashTestString << calculateStringHashCode(hashTestString);
 
 //    // Request: 55aa34100084090000487867788678bccadbca539694d86afd
 //    QByteArray response = QByteArray::fromHex("edde354800fc1a000004004878c7746a4304006778f8866c4304008678d3d16a430400bcca052928440400dbca87e60d4404005396bbfc0245040094d89a9953430c006afd80786843801b6b4348ea6a43");
@@ -38,6 +51,14 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, QObject *p
         qCDebug(dcKaco()) << "Connected to" << QString("%1:%2").arg(m_hostAddress.toString()).arg(m_port);
         emit connectedChanged(true);
         m_state = StateRequestPic;
+        m_picHighVersion = 0;
+        m_picLowVersion = 0;
+        m_userType = 0;
+        m_mac.clear();
+        m_serialNumber.clear();
+        m_picRandomKey.clear();
+        m_clientId = 0;
+
         qCDebug(dcKaco()) << m_state;
         refresh();
         m_refreshTimer.start();
@@ -46,6 +67,8 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, QObject *p
     connect(m_socket, &QTcpSocket::disconnected, this, [=](){
         qCDebug(dcKaco()) << "Disconnected from" << QString("%1:%2").arg(m_hostAddress.toString()).arg(m_port) << m_socket->errorString();
         m_state = StateInit;
+        m_picCounter = 0;
+        m_userId = 0;
         qCDebug(dcKaco()) << m_state;
         emit connectedChanged(false);
         QTimer::singleShot(2000, this, &KacoClient::connectToDevice);
@@ -55,7 +78,7 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, QObject *p
     connect(m_socket, &QTcpSocket::readyRead, this, [=](){
         QByteArray data = m_socket->readAll();
         qCDebug(dcKaco()) << "Data from" << QString("%1:%2").arg(m_hostAddress.toString()).arg(m_port);
-        qCDebug(dcKaco()) << "<--" << qUtf8Printable(data.toHex());
+        qCDebug(dcKaco()) << "<--" << qUtf8Printable(data.toHex()) << "(count:" << data.count() << ")";
         processResponse(data);
     });
 
@@ -74,7 +97,7 @@ bool KacoClient::sendData(const QByteArray &data)
     if (!connected())
         return false;
 
-    qCDebug(dcKaco()) << "-->" << qUtf8Printable(data.toHex());
+    qCDebug(dcKaco()) << "-->" << qUtf8Printable(data.toHex()) << "(count:" << data.count() << ")";
     int writtenBytes = m_socket->write(data);
     return (writtenBytes == data.count());
 }
@@ -84,23 +107,24 @@ void KacoClient::sendPicRequest()
     // Gets sent 4 times:
 
     // 55aa 30 0b00 ad030000 1b3d165f273c baa259c8 00
-    // edde303900e00b00000200234b050906001ab168271939269c02001dcf0102140025a13230313231303234353537382020202020202020bfb3ae2fb0bf0000000000
+    // edde 30 3900 e00b0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 bfb3ae2fb0bf 00 00000000
 
     // 55aa 30 0b00 7e040000 991f3a2db9e0 0040e4a1 01
-    // edde303900650c00000200234b050906001ab168271939269c02001dcf0102140025a13230313231303234353537382020202020202020dae8f07880960200000100
+    // edde 30 3900 650c0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 dae8f0788096 02 00000100
 
-    // 55aa 30 0b00c 8040000 d26765783ed9 90a42640 01
-    // edde303900300c00000200234b050906001ab168271939269c02001dcf0102140025a1323031323130323435353738202020202020202098a7bd5afeb70200000100
+    // 55aa 30 0b00 c8040000 d26765783ed9 90a42640 01
+    // edde 30 3900 300c0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 98a7bd5afeb7 02 00000100
 
-    // 55aa 30 0b000 6050000 aefdd5020c77 1950f3a4 01
-    // edde303900c30b00000200234b050906001ab168271939269c02001dcf0102140025a1323031323130323435353738202020202020202042db89d3c0650200000100
-
-
+    // 55aa 30 0b00 06050000 aefdd5020c77 1950f3a4 01
+    // edde 30 3900 c30b0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 42db89d3c065 02 00000100
 
 
-    // (20 bytes) 55 aa 30 0b 00 3a 04 00 00 74 13 46 ad 18 a3 f8 6d 2b 75 00
+    qCDebug(dcKaco()) << "Sending PIC data request...";
+    m_requestPending = true;
 
-    // 0x55 0xaa 0x30 0x0b 0x00 0x3a 0x04 0x00 0x00 0x74 0x13 0x46 0xad 0x18 0xa3 0xf8 0x6d 0x2b 0x75 0x00
+    // ***********************************
+    // 55aa 30 0b00 ee050000 bb2a5e84ee71 d5d167bb 00
+
     // Random key are 6 bytes
 
     QByteArray data;
@@ -115,17 +139,77 @@ void KacoClient::sendPicRequest()
     stream << static_cast<quint32>(0);
 
 
-    // 9, 10, 11, 12, 13, 14: Random bytes? | 74 13 46 ad 18 a3
-    QByteArray randomBytes = QByteArray::fromHex("741346ad18a3");//generateRandomBytes();
-    for (int i = 0; i < randomBytes.count(); i++) {
-        stream << static_cast<quint8>(randomBytes.at(i));
+    //private int putPicMsg(byte[] paramArrayOfbyte) {
+    //  this.rnd.nextBytes(this.dummyBytes);
+    //  System.arraycopy(this.dummyBytes, 0, paramArrayOfbyte, 9, 10);
+    //  if (this.picRandomKeyRefreshTime > 0L) {
+    //    if (Util.feedback != null && Util.g == 1980 && Util.userId >= 1)
+    //      Util.feedback.getData(this.mac, 0, 6, this.picRandomKey, paramArrayOfbyte, 9);
+    //    paramArrayOfbyte[15] = (byte)(this.userKey & 0xFF);
+    //    paramArrayOfbyte[16] = (byte)(this.userKey >> 8 & 0xFF);
+    //    paramArrayOfbyte[17] = (byte)(this.userKey >> 16 & 0xFF);
+    //    paramArrayOfbyte[18] = (byte)(this.userKey >> 24 & 0xFF);
+    //    getData(paramArrayOfbyte, 15, 4, this.picRandomKey, paramArrayOfbyte, 15, 2);
+    //    paramArrayOfbyte[19] = (byte)(Util.userId & 0xFF);
+    //  }
+    //  return 20;
+    //}
+
+    //private int getData(byte[] paramArrayOfbyte1, int userKeyIndex, int userKeyLength, byte[] randomKey, byte[] message, int messagePosition, int iterations) {
+    //  byte[] outputData = new byte[userKeyLength];
+    //  System.arraycopy(paramArrayOfbyte1, userKeyIndex, outputData, 0, userKeyLength);
+    //  byte b;
+    //  for (b = 0; b < outputData.length && b < randomKey.length; b++)
+    //    outputData[b] = (byte)(outputData[b] + randomKey[b]);
+
+    //  for (b = 0; b < iterations; b++) {
+    //    outputData[b % userKeyLength] = (byte)(outputData[b % userKeyLength] + 1);
+    //    outputData[b % userKeyLength] = (byte)(outputData[b % userKeyLength] + outputData[(b + 10) % userKeyLength]);
+    //    outputData[(b + 3) % userKeyLength] = (byte)(outputData[(b + 3) % userKeyLength] * outputData[(b + 11) % userKeyLength]);
+    //    outputData[b % userKeyLength] = (byte)(outputData[b % userKeyLength] + outputData[(b + 7) % userKeyLength]);
+    //  }
+    //  System.arraycopy(outputData, 0, message, messagePosition, userKeyLength);
+    //  return 1;
+    //}
+    //}
+
+    // 9, 10, 11, 12, 13, 14: Random key bytes ?
+    m_picRandomKey = QByteArray::fromHex("bb2a5e84ee71"); //generateRandomBytes(); //
+    for (int i = 0; i < m_picRandomKey.size(); i++)
+        stream << static_cast<quint8>(m_picRandomKey.at(i));
+
+    // Do some black magic with the key using the random bytes
+    // 15, 16, 17, 18: userkey uint32
+    m_userKey = calculateStringHashCode("abc123");
+
+    QByteArray keyBuffer(4, '0');
+    keyBuffer[0] = m_userKey & 0xff;
+    keyBuffer[1] = (m_userKey >> 8) & 0xff;
+    keyBuffer[2] = (m_userKey >> 16) & 0xff;
+    keyBuffer[3] = (m_userKey >> 24) & 0xff;
+
+    qCDebug(dcKaco()) << "key buffer start" << byteArrayToHexString(keyBuffer);
+
+    quint8 keyLength = keyBuffer.size();
+    for (quint8 i = 0; i < keyLength && i < m_picRandomKey.size(); i++)
+        keyBuffer[i] = keyBuffer.at(i) + m_picRandomKey.at(i);
+
+    quint8 iterations = 2;
+    for (quint8 i = 0; i < iterations; i++) {
+        keyBuffer[i % keyLength] = keyBuffer.at(i % keyLength) + 1;
+        keyBuffer[i % keyLength] = keyBuffer.at(i % keyLength) + keyBuffer.at((i + 10) % keyLength);
+        keyBuffer[(i + 3) % keyLength] = keyBuffer.at((i + 3) % keyLength) + keyBuffer.at((i + 11) % keyLength);
+        keyBuffer[i % keyLength] = keyBuffer.at(i % keyLength) + keyBuffer.at((i + 7) % keyLength);
     }
 
-    // 15, 16, 17, 18: userkey uint32 | f8 6d 2b 75
-    // hash quint32 from the username DEMO_MODE, maybe lts try nymea hash later
-    stream << m_userKey;
+    qCDebug(dcKaco()) << "key buffer end  " << byteArrayToHexString(keyBuffer);
+    qCDebug(dcKaco()) << "should be       " << byteArrayToHexString(QByteArray::fromHex("d5d167bb"));
 
-    // 19: userId | 00
+    for (quint8 i = 0; i < keyLength; i++)
+        stream << static_cast<quint8>(keyBuffer.at(i));
+
+
+    // 19: userId
     stream << m_userId;
 
     // Calculate checksum 5, 6, 7, 8
@@ -135,14 +219,17 @@ void KacoClient::sendPicRequest()
     data[7] = (checksum >> 16) & 0xff;
     data[8] = (checksum >> 24) & 0xff;
 
-    qCDebug(dcKaco()) << "Sending PIC data request...";
-    sendData(data);
+    qCDebug(dcKaco()) << "-->" << qUtf8Printable(data.toHex()) << "(count:" << data.count() << ")";
+
+    //sendData(data);
 }
 
 void KacoClient::sendInverterRequest()
 {
     // Testing
-    sendData(QByteArray::fromHex("55aa34040063010000aa3a057a"));
+    qCDebug(dcKaco()) << "Sending inverter data request...";
+    m_requestPending = true;
+    sendData(QByteArray::fromHex("edde351000cb0200000400aa3a0a0927310400057ae5070702"));
     return;
 
     // 55 aa | 34 1000 | 84 09 00 00 | 4878 6778 8678 bcca dbca 5396 94d8 6afd
@@ -181,7 +268,6 @@ void KacoClient::sendInverterRequest()
     data[7] = (checksum >> 16) & 0xff;
     data[8] = (checksum >> 24) & 0xff;
 
-    qCDebug(dcKaco()) << "Sending inverter data request...";
     sendData(data);
 }
 
@@ -251,49 +337,55 @@ void KacoClient::processPicResponse(const QByteArray &message)
 {
     qCDebug(dcKaco()) << "Process PIC data...";
     if (message.count() >= 15) {
-        quint8 picHighVersion = message.at(13);
-        quint8 picLowVersion = message.at(14);
-        if (picHighVersion < 2 && message.count() < 62) {
+        m_picHighVersion = message.at(13);
+        m_picLowVersion = message.at(14);
+        if (m_picHighVersion < 2 && message.count() < 62) {
             // User type 1 ?
-            qCDebug(dcKaco()) << "- User type: 1";
+            m_userType = 1;
+            qCDebug(dcKaco()) << "- User type:" << m_userType;
         }
-        qCDebug(dcKaco()) << "- PIC high version:" << byteToHexString(picHighVersion) << picHighVersion;
-        qCDebug(dcKaco()) << "- PIC low version:" << byteToHexString(picLowVersion) << picLowVersion;
+        qCDebug(dcKaco()) << "- PIC high version:" << byteToHexString(m_picHighVersion) << m_picHighVersion;
+        qCDebug(dcKaco()) << "- PIC low version:" << byteToHexString(m_picLowVersion) << m_picLowVersion;
     }
 
     if (message.count() >= 25) {
-        QByteArray mac = message.mid(19, 6);
-        qCDebug(dcKaco()) << "- MAC:" << byteArrayToHexString(mac) << mac.toHex().trimmed();
+        m_mac = message.mid(19, 6);
+        qCDebug(dcKaco()) << "- MAC:" << m_mac.toHex();
     }
 
     if (message.count() >= 55) {
-        QByteArray serialNumber = message.mid(35, 20);
+        m_serialNumber = message.mid(35, 20);
         // 68271939269c SN: 201210245578
-        qCDebug(dcKaco()) << "- Serial number:" << byteArrayToHexString(serialNumber) << QString::fromUtf8(serialNumber).trimmed();
+        qCDebug(dcKaco()) << "- Serial number:" << QString::fromUtf8(m_serialNumber).trimmed();
     }
 
     if (message.count() >= 61) {
-        QByteArray randomKey = message.mid(55, 6);
-        qCDebug(dcKaco()) << "- Random key:" << byteArrayToHexString(randomKey);
+        m_picRandomKey = message.mid(55, 6);
+        qCDebug(dcKaco()) << "- Random key:" << m_picRandomKey.toHex();
     }
 
     if (message.count() >= 62) {
-        quint8 userId = message.at(61);
-        qCDebug(dcKaco()) << "- User ID:" << byteToHexString(userId) << userId;
+        m_userId = message.at(61);
+        qCDebug(dcKaco()) << "- User ID:" << byteToHexString(m_userId) << m_userId;
     }
 
     if (message.count() >= 66) {
         QByteArray clientId = message.mid(62, 4);
         QDataStream clientIdStream(&clientId, QIODevice::ReadOnly);
         clientIdStream.setByteOrder(QDataStream::LittleEndian);
-        quint32 clientIdInt;
-        clientIdStream >> clientIdInt;
-        qCDebug(dcKaco()) << "- Client ID:" << byteArrayToHexString(clientId) << clientIdInt;
+        clientIdStream >> m_clientId;
+        qCDebug(dcKaco()) << "- Client ID:" << byteArrayToHexString(clientId) << m_clientId;
     }
 
+    m_picCounter++;
+    if (m_picCounter >= 1) {
+        m_userId = 1;
+    }
 
-    m_state = StateRequestInverter;
-    qCDebug(dcKaco()) << m_state;
+    if (m_picCounter > 3) {
+        m_state = StateRequestInverter;
+        qCDebug(dcKaco()) << m_state;
+    }
 }
 
 void KacoClient::processInverterResponse(const QByteArray &message)
@@ -442,10 +534,15 @@ QByteArray KacoClient::generateRandomBytes(int count)
     return randomBytes;
 }
 
-quint16 KacoClient::getStringHash(const QString &name)
+int KacoClient::calculateStringHashCode(const QString &name)
 {
-    return static_cast<quint16>(qHash(name) & 0xFFFF);
-}
+    int hashSum = 0;
+    for (int i = 0; i < name.length(); i++) {
+        hashSum = (hashSum * 31) + name.at(i).toLatin1();
+    }
+    qCDebug(dcKaco()) << "Hash of" << name << hashSum;
+    return hashSum;
+ }
 
 quint32 KacoClient::calculateChecksum(const QByteArray &data)
 {
@@ -462,6 +559,15 @@ float KacoClient::convertRawValueToFloat(quint32 rawValue)
     float value = 0;
     memcpy(&value, &rawValue, sizeof(quint32));
     return value;
+}
+
+QByteArray KacoClient::convertUint32ToByteArrayLittleEndian(quint32 value)
+{
+    QByteArray data;
+    QDataStream stream(&data, QIODevice::ReadWrite);
+    stream.setByteOrder(QDataStream::LittleEndian);
+    stream << value;
+    return data;
 }
 
 void KacoClient::refresh()
@@ -488,3 +594,9 @@ void KacoClient::refresh()
         break;
     }
 }
+
+
+
+
+
+
