@@ -12,7 +12,7 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
     m_port(port),
     m_userPassword(password)
 {
-    qCDebug(dcKaco()) << "Status proprties:";
+    // Initialize property hashes for requests and data parsing
     m_statusProperties << "fm.error_bits[0]";
     m_statusProperties << "fm.error_bits[1]";
     m_statusProperties << "warn_bf";
@@ -21,28 +21,17 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
     m_statusProperties << "rs.dist_board_on";
     m_statusProperties << "bms.Status_BMS.Allbits";
     m_statusProperties << "prime_sm.inverter_mode";
-    printHashCodes(m_statusProperties);
+    foreach (const QString &property, m_statusProperties)
+        m_propertyHashes.insert(calculateStringHashCode(property) & 0xffff, property);
 
-    qCDebug(dcKaco()) << "Demo data proprties:";
-    m_demoDataProperties << "g_sync.u_l_rms[0]";
-    m_demoDataProperties << "g_sync.u_l_rms[1]";
-    m_demoDataProperties << "g_sync.u_l_rms[2]";
-    m_demoDataProperties << "g_sync.u_sg_avg[0]";
-    m_demoDataProperties << "g_sync.u_sg_avg[1]";
-    m_demoDataProperties << "g_sync.p_pv_lp";
-    m_demoDataProperties << "bms.u_total";
-    m_demoDataProperties << "rs.u_ext";
-    printHashCodes(m_demoDataProperties);
-
-    qCDebug(dcKaco()) << "System info proprties:";
     m_systemInfoProperties << "sw_version";
     m_systemInfoProperties << "pic_version";
     m_systemInfoProperties << "rs.db_version";
     m_systemInfoProperties << "dev_serial_num";
     m_systemInfoProperties << "dev_config_txt";
-    printHashCodes(m_systemInfoProperties);
+    foreach (const QString &property, m_systemInfoProperties)
+        m_propertyHashes.insert(calculateStringHashCode(property) & 0xffff, property);
 
-    qCDebug(dcKaco()) << "Inverter proprties:";
     m_inverterProperties << "g_sync.u_l_rms[0]";
     m_inverterProperties << "g_sync.u_l_rms[1]";
     m_inverterProperties << "g_sync.u_l_rms[2]";
@@ -55,42 +44,41 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
     m_inverterProperties << "g_sync.p_pv_lp";
     m_inverterProperties << "gd[0].f_l_slow";
     m_inverterProperties << "iso.r";
-    printHashCodes(m_inverterProperties);
+    foreach (const QString &property, m_inverterProperties)
+        m_propertyHashes.insert(calculateStringHashCode(property) & 0xffff, property);
 
-    qCDebug(dcKaco()) << "Vectris proprties:";
-    m_vectisProperties << "rs.p_int";
+    //m_vectisProperties << "rs.p_int";
     m_vectisProperties << "rs.p_ext";
     m_vectisProperties << "rs.u_ext";
     m_vectisProperties << "rs.f_ext";
-    m_vectisProperties << "rs.q_int";
-    m_vectisProperties << "rs.q_ext";
-    printHashCodes(m_vectisProperties);
+    //m_vectisProperties << "rs.q_int";
+    //m_vectisProperties << "rs.q_ext";
+    foreach (const QString &property, m_vectisProperties)
+        m_propertyHashes.insert(calculateStringHashCode(property) & 0xffff, property);
 
-    qCDebug(dcKaco()) << "Battery proprties:";
     m_batteryProperties << "g_sync.p_accu";
     m_batteryProperties << "bms.u_total";
     m_batteryProperties << "bms.SOEpercent_total";
-    printHashCodes(m_batteryProperties);
+    foreach (const QString &property, m_batteryProperties)
+        m_propertyHashes.insert(calculateStringHashCode(property) & 0xffff, property);
 
-    qCDebug(dcKaco()) << "Date proprties:";
     m_dateProperties << "rtc.SecMinHourDay";
     m_dateProperties << "rtc.DaWeMonthYear";
-    printHashCodes(m_dateProperties);
+    foreach (const QString &property, m_dateProperties)
+        m_propertyHashes.insert(calculateStringHashCode(property) & 0xffff, property);
 
-    qCDebug(dcKaco()) << "Meter properties:";
     m_meterProperties << "dd.e_inverter_inj";
     m_meterProperties << "dd.e_inverter_cons";
     m_meterProperties << "dd.e_grid_inj";
     m_meterProperties << "dd.e_grid_cons";
     m_meterProperties << "dd.e_compensation";
     //m_meterProperties << "dd.q_acc";
-    printHashCodes(m_meterProperties);
+    foreach (const QString &property, m_meterProperties)
+        m_propertyHashes.insert(calculateStringHashCode(property) & 0xffff, property);
 
-    // 55aa 34 1400 e70a0000 aa3a 057a 4878 6778 8678 bcca dbca 5396 94d8 6afd
-    // edde 35 5800 531d0000 0400 aa3a 160d2c34 0400 057a e5070a0104004878b10d6f4304006778a2397043040086784e7e6e430400bccaee2113440400dbca3ece0b440400539632dba943040094d89a994d430c006afd78b76d43688a6e43c0d76e43
-
-    // 55aa 34 1000 84090000 4878 6778 8678 bcca dbca 5396 94d8 6afd
-    // edde354800e11a0000040048783dad6e4304006778e9617043040086788dda6e430400bcca1a1f13440400dbca27c80b4404005396e784a943040094d89a994d430c006afd488d6d43809f6e43c0d76e43
+    // Show for debugging
+    //    foreach (const QString &property, m_propertyHashes.values())
+    //        qCDebug(dcKaco()) << "-->" << property << m_propertyHashes.key(property);
 
     // Get the hash of the password
     m_userPasswordHash = calculateStringHashCode(m_userPassword);
@@ -108,7 +96,7 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
         setState(StateAuthenticate);
         resetData();
 
-        refresh();
+        //refresh();
         m_refreshTimer.start();
     });
 
@@ -218,6 +206,41 @@ float KacoClient::meterSelfConsumptionPhaseC() const
     return m_meterSelfConsumptionPhaseC;
 }
 
+float KacoClient::meterVoltagePhaseA() const
+{
+    return m_meterVoltagePhaseA;
+}
+
+float KacoClient::meterVoltagePhaseB() const
+{
+    return m_meterVoltagePhaseB;
+}
+
+float KacoClient::meterVoltagePhaseC() const
+{
+    return m_meterVoltagePhaseC;
+}
+
+float KacoClient::meterPowerPhaseA() const
+{
+    return m_meterPowerPhaseA;
+}
+
+float KacoClient::meterPowerPhaseB() const
+{
+    return m_meterPowerPhaseB;
+}
+
+float KacoClient::meterPowerPhaseC() const
+{
+    return m_meterPowerPhaseC;
+}
+
+float KacoClient::meterFrequency() const
+{
+    return m_meterFrequency;
+}
+
 float KacoClient::inverterGridVoltagePhaseA() const
 {
     return m_inverterGridVoltagePhaseA;
@@ -278,9 +301,9 @@ float KacoClient::inverterPvPower() const
     return m_inverterPvPower;
 }
 
-float KacoClient::inverterGridFrequency() const
+float KacoClient::inverterFrequency() const
 {
-    return m_inverterGridFrequency;
+    return m_inverterFrequency;
 }
 
 float KacoClient::batteryPower() const
@@ -334,9 +357,44 @@ void KacoClient::resetData()
     m_lastPicTimestamp = 0;
 
     // Properties
+
+    // Meter information
+    m_meterInverterEnergyReturnedPhaseA = 0;
+    m_meterInverterEnergyReturnedPhaseB = 0;
+    m_meterInverterEnergyReturnedPhaseC = 0;
+    m_meterInverterEnergyConsumedPhaseA = 0;
+    m_meterInverterEnergyConsumedPhaseB = 0;
+    m_meterInverterEnergyConsumedPhaseC = 0;
+    m_meterGridEnergyReturnedPhaseA = 0;
+    m_meterGridEnergyReturnedPhaseB = 0;
+    m_meterGridEnergyReturnedPhaseC = 0;
+    m_meterGridEnergyConsumedPhaseA = 0;
+    m_meterGridEnergyConsumedPhaseB = 0;
+    m_meterGridEnergyConsumedPhaseC = 0;
+    m_meterSelfConsumptionPhaseA = 0;
+    m_meterSelfConsumptionPhaseB = 0;
+    m_meterSelfConsumptionPhaseC = 0;
+
+    // Inverter information
     m_inverterGridVoltagePhaseA = 0;
     m_inverterGridVoltagePhaseB = 0;
     m_inverterGridVoltagePhaseC = 0;
+    m_inverterPowerPhaseA = 0;
+    m_inverterPowerPhaseB = 0;
+    m_inverterPowerPhaseC = 0;
+    m_inverterReactivePowerPhaseA = 0;
+    m_inverterReactivePowerPhaseB = 0;
+    m_inverterReactivePowerPhaseC = 0;
+    m_inverterPvVoltage1 = 0;
+    m_inverterPvVoltage2 = 0;
+    m_inverterPvPower = 0;
+    m_inverterFrequency = 0;
+    m_inverterResistanceIsolation = 0;
+
+    // Battery information
+    m_batteryPower = 0;
+    m_batteryVoltage = 0;
+    m_batteryPercentage = 0;
 }
 
 
@@ -404,7 +462,7 @@ void KacoClient::sendPicRequest()
     // 55aa 30 0b00 06050000 aefdd5020c77 1950f3a4 01
     // edde 30 3900 c30b0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 42db89d3c065 02 00000100
 
-    qCDebug(dcKaco()) << "Sending PIC data request...";
+    qCDebug(dcKaco()) << "Sending PIC request...";
 
     QByteArray payload;
     QDataStream stream(&payload, QIODevice::ReadWrite);
@@ -534,9 +592,9 @@ void KacoClient::sendInverterRequest()
     QDataStream stream(&payload, QIODevice::ReadWrite);
     stream.setByteOrder(QDataStream::LittleEndian);
 
-    // The list of date property hashes
-    foreach (const QString &dateProperty, m_dateProperties) {
-        stream << static_cast<quint16>(calculateStringHashCode(dateProperty) & 0xffff);
+    // The list of vectis meter property hashes
+    foreach (const QString &vectisProperty, m_vectisProperties) {
+        stream << static_cast<quint16>(calculateStringHashCode(vectisProperty) & 0xffff);
     }
 
     // The list of meter property hashes
@@ -618,295 +676,413 @@ void KacoClient::processInverterResponse(const QByteArray &message)
     quint16 paramHash = 0;
     quint32 paramValueRaw = 0;
 
-    // ------------- Date time
+    while (!stream.atEnd()) {
+        // Read the next param size and hash
+        stream >> paramSize >> paramHash;
+        qCDebug(dcKaco()) << "Read parameter" << paramHash << "size" << paramSize;
 
-    // Time rtc.SecMinHourDay
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    // TODO: parse time
+        // Meter ----------------------------------------
 
-    // Date rtc.DaWeMonthYear
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    // TODO: parse date
+        if (paramHash == m_propertyHashes.key("dd.e_inverter_inj")) {
+
+            // Meter feed in inverter
+            stream >> paramValueRaw;
+            float meterInverterEnergyReturnedPhaseA = convertEnergyToFloat(paramValueRaw, 16, 240000.0) / 1000.0;
+            qCDebug(dcKaco()) << "Meter inverter feed in phase A" << meterInverterEnergyReturnedPhaseA << "kWh";
+            if (!qFuzzyCompare(m_meterInverterEnergyReturnedPhaseA, meterInverterEnergyReturnedPhaseA)) {
+                m_meterInverterEnergyReturnedPhaseA = meterInverterEnergyReturnedPhaseA;
+                emit meterInverterEnergyReturnedPhaseAChanged(m_meterInverterEnergyReturnedPhaseA);
+            }
+
+            stream >> paramValueRaw;
+            float meterInverterEnergyReturnedPhaseB = convertEnergyToFloat(paramValueRaw, 16, 7200000.0) / 1000.0;
+            qCDebug(dcKaco()) << "Meter inverter feed in phase B" << meterInverterEnergyReturnedPhaseB << "kWh";
+            if (!qFuzzyCompare(m_meterInverterEnergyReturnedPhaseB, meterInverterEnergyReturnedPhaseB)) {
+                m_meterInverterEnergyReturnedPhaseB = meterInverterEnergyReturnedPhaseB;
+                emit meterInverterEnergyReturnedPhaseBChanged(m_meterInverterEnergyReturnedPhaseB);
+            }
+
+            stream >> paramValueRaw;
+            float meterInverterEnergyReturnedPhaseC = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
+            qCDebug(dcKaco()) << "Meter inverter feed in phase C" << meterInverterEnergyReturnedPhaseC << "kWh";
+            if (!qFuzzyCompare(m_meterInverterEnergyReturnedPhaseC, meterInverterEnergyReturnedPhaseC)) {
+                m_meterInverterEnergyReturnedPhaseC = meterInverterEnergyReturnedPhaseC;
+                emit meterInverterEnergyReturnedPhaseCChanged(m_meterInverterEnergyReturnedPhaseC);
+            }
+
+        } else if (paramHash == m_propertyHashes.key("dd.e_inverter_cons")) {
+
+            // Meter consumed inverter
+            stream >> paramValueRaw;
+            float meterInverterEnergyConsumedPhaseA = convertEnergyToFloat(paramValueRaw, 16, 240000.0)/ 1000.0;
+            qCDebug(dcKaco()) << "Meter inverter consumed phase A" << meterInverterEnergyConsumedPhaseA << "kWh";
+            if (!qFuzzyCompare(m_meterInverterEnergyConsumedPhaseA, meterInverterEnergyConsumedPhaseA)) {
+                m_meterInverterEnergyConsumedPhaseA = meterInverterEnergyConsumedPhaseA;
+                emit meterInverterEnergyConsumedPhaseAChanged(m_meterInverterEnergyConsumedPhaseA);
+            }
+
+            stream >> paramValueRaw;
+            float meterInverterEnergyConsumedPhaseB = convertEnergyToFloat(paramValueRaw, 16, 7200000.0) / 1000.0;
+            qCDebug(dcKaco()) << "Meter inverter consumed phase B" << meterInverterEnergyConsumedPhaseB << "kWh";
+            if (!qFuzzyCompare(m_meterInverterEnergyConsumedPhaseB, meterInverterEnergyConsumedPhaseB)) {
+                m_meterInverterEnergyConsumedPhaseB = meterInverterEnergyConsumedPhaseB;
+                emit meterInverterEnergyConsumedPhaseBChanged(m_meterInverterEnergyConsumedPhaseB);
+            }
+
+            stream >> paramValueRaw;
+            float meterInverterEnergyConsumedPhaseC = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
+            qCDebug(dcKaco()) << "Meter inverter consumed phase C" << meterInverterEnergyConsumedPhaseC << "kWh";
+            if (!qFuzzyCompare(m_meterInverterEnergyConsumedPhaseC, meterInverterEnergyConsumedPhaseC)) {
+                m_meterInverterEnergyConsumedPhaseC = meterInverterEnergyConsumedPhaseC;
+                emit meterInverterEnergyConsumedPhaseCChanged(m_meterInverterEnergyConsumedPhaseC);
+            }
+
+        } else if (paramHash == m_propertyHashes.key("dd.e_grid_inj")) {
+
+            // Meter grid feed in
+            stream >> paramValueRaw;
+            float meterGridEnergyReturnedPhaseA = convertEnergyToFloat(paramValueRaw, 16, 2400000.0) / 1000.0;
+            qCDebug(dcKaco()) << "Meter grid feed in phase A" << meterGridEnergyReturnedPhaseA << "kWh";
+            if (!qFuzzyCompare(m_meterGridEnergyReturnedPhaseA, meterGridEnergyReturnedPhaseA)) {
+                m_meterGridEnergyReturnedPhaseA = meterGridEnergyReturnedPhaseA;
+                emit meterGridEnergyReturnedPhaseAChanged(m_meterGridEnergyReturnedPhaseA);
+            }
+
+            stream >> paramValueRaw;
+            float meterGridEnergyReturnedPhaseB = convertEnergyToFloat(paramValueRaw, 16, 7.2E7) / 1000.0;
+            qCDebug(dcKaco()) << "Meter grid feed in phase B" << meterGridEnergyReturnedPhaseB << "kWh";
+            if (!qFuzzyCompare(m_meterGridEnergyReturnedPhaseB, meterGridEnergyReturnedPhaseB)) {
+                m_meterGridEnergyReturnedPhaseB = meterGridEnergyReturnedPhaseB;
+                emit meterGridEnergyReturnedPhaseBChanged(m_meterGridEnergyReturnedPhaseB);
+            }
+
+            stream >> paramValueRaw;
+            float meterGridEnergyReturnedPhaseC = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
+            qCDebug(dcKaco()) << "Meter grid feed in phase C" << meterGridEnergyReturnedPhaseC << "kWh";
+            if (!qFuzzyCompare(m_meterGridEnergyReturnedPhaseC, meterGridEnergyReturnedPhaseC)) {
+                m_meterGridEnergyReturnedPhaseC = meterGridEnergyReturnedPhaseC;
+                emit meterGridEnergyReturnedPhaseCChanged(m_meterGridEnergyReturnedPhaseC);
+            }
+
+        } else if (paramHash == m_propertyHashes.key("dd.e_grid_cons")) {
+
+            // Meter consumed grid
+            stream >> paramValueRaw;
+            float meterGridEnergyConsumedPhaseA = convertEnergyToFloat(paramValueRaw, 16, 2400000.0) / 1000.0;
+            qCDebug(dcKaco()) << "Meter grid consumed phase A" << meterGridEnergyConsumedPhaseA << "kWh";
+            if (!qFuzzyCompare(m_meterGridEnergyConsumedPhaseA, meterGridEnergyConsumedPhaseA)) {
+                m_meterGridEnergyConsumedPhaseA = meterGridEnergyConsumedPhaseA;
+                emit meterGridEnergyConsumedPhaseAChanged(m_meterGridEnergyConsumedPhaseA);
+            }
+
+            stream >> paramValueRaw;
+            float meterGridEnergyConsumedPhaseB = convertEnergyToFloat(paramValueRaw, 16, 7.2E7) / 1000.0;
+            qCDebug(dcKaco()) << "Meter grid consumed phase B" << meterGridEnergyConsumedPhaseB << "kWh";
+            if (!qFuzzyCompare(m_meterGridEnergyConsumedPhaseB, meterGridEnergyConsumedPhaseB)) {
+                m_meterGridEnergyConsumedPhaseB = meterGridEnergyConsumedPhaseB;
+                emit meterGridEnergyConsumedPhaseBChanged(m_meterGridEnergyConsumedPhaseB);
+            }
+
+            stream >> paramValueRaw;
+            float meterGridEnergyConsumedPhaseC = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
+            qCDebug(dcKaco()) << "Meter grid consumed phase C" << meterGridEnergyConsumedPhaseC << "kWh";
+            if (!qFuzzyCompare(m_meterGridEnergyConsumedPhaseC, meterGridEnergyConsumedPhaseC)) {
+                m_meterGridEnergyConsumedPhaseC = meterGridEnergyConsumedPhaseC;
+                emit meterGridEnergyConsumedPhaseCChanged(m_meterGridEnergyConsumedPhaseC);
+            }
+
+        } else if (paramHash == m_propertyHashes.key("dd.e_compensation")) {
+
+            // Meter self consumption
+            stream >> paramValueRaw;
+            float meterSelfConsumptionPhaseA = convertEnergyToFloat(paramValueRaw, 16, 240000.0) / 1000.0;
+            qCDebug(dcKaco()) << "Meter grid consumed phase A" << meterSelfConsumptionPhaseA << "kWh";
+            if (!qFuzzyCompare(m_meterSelfConsumptionPhaseA, meterSelfConsumptionPhaseA)) {
+                m_meterSelfConsumptionPhaseA = meterSelfConsumptionPhaseA;
+                emit meterSelfConsumptionPhaseAChanged(m_meterSelfConsumptionPhaseA);
+            }
+
+            stream >> paramValueRaw;
+            float meterSelfConsumptionPhaseB = convertEnergyToFloat(paramValueRaw, 16, 7200000.0) / 1000.0;
+            qCDebug(dcKaco()) << "Meter grid consumed phase B" << meterSelfConsumptionPhaseB << "kWh";
+            if (!qFuzzyCompare(m_meterSelfConsumptionPhaseB, meterSelfConsumptionPhaseB)) {
+                m_meterSelfConsumptionPhaseB = meterSelfConsumptionPhaseB;
+                emit meterSelfConsumptionPhaseBChanged(m_meterSelfConsumptionPhaseB);
+            }
+
+            stream >> paramValueRaw;
+            float meterSelfConsumptionPhaseC = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
+            qCDebug(dcKaco()) << "Meter grid consumed phase C" << meterSelfConsumptionPhaseC << "kWh";
+            if (!qFuzzyCompare(m_meterSelfConsumptionPhaseC, meterSelfConsumptionPhaseC)) {
+                m_meterSelfConsumptionPhaseC = meterSelfConsumptionPhaseC;
+                emit meterSelfConsumptionPhaseCChanged(m_meterSelfConsumptionPhaseC);
+            }
 
 
-    // ------------- Meter
 
-    // Meter feed in inverter
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float meterInverterEnergyReturnedPhaseA = convertRawValueToFloat(paramValueRaw) / 1000.0;
-    qCDebug(dcKaco()) << "Meter inverter feed in phase A" << meterInverterEnergyReturnedPhaseA << "kWh";
-    if (!qFuzzyCompare(m_meterInverterEnergyReturnedPhaseA, meterInverterEnergyReturnedPhaseA)) {
-        m_meterInverterEnergyReturnedPhaseA = meterInverterEnergyReturnedPhaseA;
-        emit meterInverterEnergyReturnedPhaseAChanged(m_meterInverterEnergyReturnedPhaseA);
-    }
 
-    stream >> paramValueRaw;
-    float meterInverterEnergyReturnedPhaseB = convertRawValueToFloat(paramValueRaw) / 1000.0;
-    qCDebug(dcKaco()) << "Meter inverter feed in phase B" << meterInverterEnergyReturnedPhaseB << "kWh";
-    if (!qFuzzyCompare(m_meterInverterEnergyReturnedPhaseB, meterInverterEnergyReturnedPhaseB)) {
-        m_meterInverterEnergyReturnedPhaseB = meterInverterEnergyReturnedPhaseB;
-        emit meterInverterEnergyReturnedPhaseBChanged(m_meterInverterEnergyReturnedPhaseB);
-    }
+            // Inverter ----------------------------------------
 
-    stream >> paramValueRaw;
-    float meterInverterEnergyReturnedPhaseC = convertRawValueToFloat(paramValueRaw) / 1000.0;
-    qCDebug(dcKaco()) << "Meter inverter feed in phase C" << meterInverterEnergyReturnedPhaseC << "kWh";
-    if (!qFuzzyCompare(m_meterInverterEnergyReturnedPhaseC, meterInverterEnergyReturnedPhaseC)) {
-        m_meterInverterEnergyReturnedPhaseC = meterInverterEnergyReturnedPhaseC;
-        emit meterInverterEnergyReturnedPhaseCChanged(m_meterInverterEnergyReturnedPhaseC);
-    }
+        } else if (paramHash == m_propertyHashes.key("g_sync.u_l_rms[0]")) {
 
-    // Meter consumed inverter
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float meterInverterEnergyConsumedPhaseA = convertRawValueToFloat(paramValueRaw) / 1000.0;
-    qCDebug(dcKaco()) << "Meter inverter consumed phase A" << meterInverterEnergyConsumedPhaseA << "kWh";
-    if (!qFuzzyCompare(m_meterInverterEnergyConsumedPhaseA, meterInverterEnergyConsumedPhaseA)) {
-        m_meterInverterEnergyConsumedPhaseA = meterInverterEnergyConsumedPhaseA;
-        emit meterInverterEnergyConsumedPhaseAChanged(m_meterInverterEnergyConsumedPhaseA);
-    }
+            // Grid voltage L1
+            stream >> paramValueRaw;
+            float inverterGridVoltagePhaseA = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Inverter grid voltage phase A" << inverterGridVoltagePhaseA << "V";
+            if (!qFuzzyCompare(m_inverterGridVoltagePhaseA, inverterGridVoltagePhaseA)) {
+                m_inverterGridVoltagePhaseA = inverterGridVoltagePhaseA;
+                emit inverterGridVoltagePhaseAChanged(m_inverterGridVoltagePhaseA);
+            }
 
-    stream >> paramValueRaw;
-    float meterInverterEnergyConsumedPhaseB = convertRawValueToFloat(paramValueRaw) / 1000.0;
-    qCDebug(dcKaco()) << "Meter inverter consumed phase B" << meterInverterEnergyConsumedPhaseB << "kWh";
-    if (!qFuzzyCompare(m_meterInverterEnergyConsumedPhaseB, meterInverterEnergyConsumedPhaseB)) {
-        m_meterInverterEnergyConsumedPhaseB = meterInverterEnergyConsumedPhaseB;
-        emit meterInverterEnergyConsumedPhaseBChanged(m_meterInverterEnergyConsumedPhaseB);
-    }
+        } else if (paramHash == m_propertyHashes.key("g_sync.u_l_rms[1]")) {
 
-    stream >> paramValueRaw;
-    float meterInverterEnergyConsumedPhaseC = convertRawValueToFloat(paramValueRaw) / 1000.0;
-    qCDebug(dcKaco()) << "Meter inverter consumed phase C" << meterInverterEnergyConsumedPhaseC << "kWh";
-    if (!qFuzzyCompare(m_meterInverterEnergyConsumedPhaseC, meterInverterEnergyConsumedPhaseC)) {
-        m_meterInverterEnergyConsumedPhaseC = meterInverterEnergyConsumedPhaseC;
-        emit meterInverterEnergyConsumedPhaseCChanged(m_meterInverterEnergyConsumedPhaseC);
-    }
+            // Grid voltage L2
+            stream >> paramValueRaw;
+            float inverterGridVoltagePhaseB = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Inverter grid voltage phase B" << inverterGridVoltagePhaseB << "V";
+            if (!qFuzzyCompare(m_inverterGridVoltagePhaseB, inverterGridVoltagePhaseB)) {
+                m_inverterGridVoltagePhaseB = inverterGridVoltagePhaseB;
+                emit inverterGridVoltagePhaseBChanged(m_inverterGridVoltagePhaseB);
+            }
 
-    // Meter grid feed in
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float meterGridEnergyReturnedPhaseA = convertRawValueToFloat(paramValueRaw) / 1000.0;
-    qCDebug(dcKaco()) << "Meter grid feed in phase A" << meterGridEnergyReturnedPhaseA << "kWh";
-    if (!qFuzzyCompare(m_meterGridEnergyReturnedPhaseA, meterGridEnergyReturnedPhaseA)) {
-        m_meterGridEnergyReturnedPhaseA = meterGridEnergyReturnedPhaseA;
-        emit meterGridEnergyReturnedPhaseAChanged(m_meterGridEnergyReturnedPhaseA);
-    }
+        } else if (paramHash == m_propertyHashes.key("g_sync.u_l_rms[2]")) {
 
-    stream >> paramValueRaw;
-    float meterGridEnergyReturnedPhaseB = convertRawValueToFloat(paramValueRaw) / 1000.0;
-    qCDebug(dcKaco()) << "Meter grid feed in phase B" << meterGridEnergyReturnedPhaseB << "kWh";
-    if (!qFuzzyCompare(m_meterGridEnergyReturnedPhaseB, meterGridEnergyReturnedPhaseB)) {
-        m_meterGridEnergyReturnedPhaseB = meterGridEnergyReturnedPhaseB;
-        emit meterGridEnergyReturnedPhaseBChanged(m_meterGridEnergyReturnedPhaseB);
-    }
+            // Grid voltage L3
+            stream >> paramValueRaw;
+            float inverterGridVoltagePhaseC = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Inverter grid voltage phase C" << inverterGridVoltagePhaseC << "V";
+            if (!qFuzzyCompare(m_inverterGridVoltagePhaseC, inverterGridVoltagePhaseC)) {
+                m_inverterGridVoltagePhaseC = inverterGridVoltagePhaseC;
+                emit inverterGridVoltagePhaseCChanged(m_inverterGridVoltagePhaseC);
+            }
 
-    stream >> paramValueRaw;
-    float meterGridEnergyReturnedPhaseC = convertRawValueToFloat(paramValueRaw) / 1000.0;
-    qCDebug(dcKaco()) << "Meter grid feed in phase C" << meterGridEnergyReturnedPhaseC << "kWh";
-    if (!qFuzzyCompare(m_meterGridEnergyReturnedPhaseC, meterGridEnergyReturnedPhaseC)) {
-        m_meterGridEnergyReturnedPhaseC = meterGridEnergyReturnedPhaseC;
-        emit meterGridEnergyReturnedPhaseCChanged(m_meterGridEnergyReturnedPhaseC);
-    }
+        } else if (paramHash == m_propertyHashes.key("g_sync.p_ac[0]")) {
 
-    // Meter consumed grid
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float meterGridEnergyConsumedPhaseA = convertRawValueToFloat(paramValueRaw) / 1000.0;
-    qCDebug(dcKaco()) << "Meter grid consumed phase A" << meterGridEnergyConsumedPhaseA << "kWh";
-    if (!qFuzzyCompare(m_meterGridEnergyConsumedPhaseA, meterGridEnergyConsumedPhaseA)) {
-        m_meterGridEnergyConsumedPhaseA = meterGridEnergyConsumedPhaseA;
-        emit meterGridEnergyConsumedPhaseAChanged(m_meterGridEnergyConsumedPhaseA);
-    }
+            // AC Power L1
+            stream >> paramValueRaw;
+            float inverterPowerPhaseA = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Inverter power phase A" << inverterPowerPhaseA << "W";
+            if (!qFuzzyCompare(m_inverterPowerPhaseA, inverterPowerPhaseA)) {
+                m_inverterPowerPhaseA = inverterPowerPhaseA;
+                emit inverterPowerPhaseAChanged(m_inverterPowerPhaseA);
+            }
 
-    stream >> paramValueRaw;
-    float meterGridEnergyConsumedPhaseB = convertRawValueToFloat(paramValueRaw) / 1000.0;
-    qCDebug(dcKaco()) << "Meter grid consumed phase B" << meterGridEnergyConsumedPhaseB << "kWh";
-    if (!qFuzzyCompare(m_meterGridEnergyConsumedPhaseB, meterGridEnergyConsumedPhaseB)) {
-        m_meterGridEnergyConsumedPhaseB = meterGridEnergyConsumedPhaseB;
-        emit meterGridEnergyConsumedPhaseBChanged(m_meterGridEnergyConsumedPhaseB);
-    }
+        } else if (paramHash == m_propertyHashes.key("g_sync.p_ac[1]")) {
 
-    stream >> paramValueRaw;
-    float meterGridEnergyConsumedPhaseC = convertRawValueToFloat(paramValueRaw) / 1000.0;
-    qCDebug(dcKaco()) << "Meter grid consumed phase C" << meterGridEnergyConsumedPhaseC << "kWh";
-    if (!qFuzzyCompare(m_meterGridEnergyConsumedPhaseC, meterGridEnergyConsumedPhaseC)) {
-        m_meterGridEnergyConsumedPhaseC = meterGridEnergyConsumedPhaseC;
-        emit meterGridEnergyConsumedPhaseCChanged(m_meterGridEnergyConsumedPhaseC);
-    }
+            // AC Power L2
+            stream >> paramValueRaw;
+            float inverterPowerPhaseB = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Inverter power phase B" << inverterPowerPhaseB << "W";
+            if (!qFuzzyCompare(m_inverterPowerPhaseB, inverterPowerPhaseB)) {
+                m_inverterPowerPhaseB = inverterPowerPhaseB;
+                emit inverterPowerPhaseBChanged(m_inverterPowerPhaseB);
+            }
 
-    // Meter self consumption
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float meterSelfConsumptionPhaseA = convertRawValueToFloat(paramValueRaw) / 1000.0;
-    qCDebug(dcKaco()) << "Meter grid consumed phase A" << meterSelfConsumptionPhaseA << "kWh";
-    if (!qFuzzyCompare(m_meterSelfConsumptionPhaseA, meterSelfConsumptionPhaseA)) {
-        m_meterSelfConsumptionPhaseA = meterSelfConsumptionPhaseA;
-        emit meterSelfConsumptionPhaseAChanged(m_meterSelfConsumptionPhaseA);
-    }
+        } else if (paramHash == m_propertyHashes.key("g_sync.p_ac[2]")) {
 
-    stream >> paramValueRaw;
-    float meterSelfConsumptionPhaseB = convertRawValueToFloat(paramValueRaw) / 1000.0;
-    qCDebug(dcKaco()) << "Meter grid consumed phase B" << meterSelfConsumptionPhaseB << "kWh";
-    if (!qFuzzyCompare(m_meterSelfConsumptionPhaseB, meterSelfConsumptionPhaseB)) {
-        m_meterSelfConsumptionPhaseB = meterSelfConsumptionPhaseB;
-        emit meterSelfConsumptionPhaseBChanged(m_meterSelfConsumptionPhaseB);
-    }
+            // AC Power L3
+            stream >> paramValueRaw;
+            float inverterPowerPhaseC = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Inverter power phase C" << inverterPowerPhaseC << "W";
+            if (!qFuzzyCompare(m_inverterPowerPhaseC, inverterPowerPhaseC)) {
+                m_inverterPowerPhaseC = inverterPowerPhaseC;
+                emit inverterPowerPhaseCChanged(m_inverterPowerPhaseC);
+            }
 
-    stream >> paramValueRaw;
-    float meterSelfConsumptionPhaseC = convertRawValueToFloat(paramValueRaw) / 1000.0;
-    qCDebug(dcKaco()) << "Meter grid consumed phase C" << meterSelfConsumptionPhaseC << "kWh";
-    if (!qFuzzyCompare(m_meterSelfConsumptionPhaseC, meterSelfConsumptionPhaseC)) {
-        m_meterSelfConsumptionPhaseC = meterSelfConsumptionPhaseC;
-        emit meterSelfConsumptionPhaseCChanged(m_meterSelfConsumptionPhaseC);
-    }
+        } else if (paramHash == m_propertyHashes.key("g_sync.q_ac")) {
 
-    // ------------- Inverter
+            // AC reactive Power L1
+            stream >> paramValueRaw;
+            float inverterReactivePowerPhaseA = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Inverter reactive power phase A" << inverterReactivePowerPhaseA << "Var";
+            if (!qFuzzyCompare(m_inverterReactivePowerPhaseA, inverterReactivePowerPhaseA)) {
+                m_inverterReactivePowerPhaseA = inverterReactivePowerPhaseA;
+                emit inverterReactivePowerPhaseAChanged(m_inverterReactivePowerPhaseA);
+            }
 
-    // Grid voltage L1
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float inverterGridVoltagePhaseA = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Inverter grid voltage phase A" << inverterGridVoltagePhaseA << "V";
-    if (!qFuzzyCompare(m_inverterGridVoltagePhaseA, inverterGridVoltagePhaseA)) {
-        m_inverterGridVoltagePhaseA = inverterGridVoltagePhaseA;
-        emit inverterGridVoltagePhaseAChanged(m_inverterGridVoltagePhaseA);
-    }
+            // AC reactive Power L2
+            stream >> paramValueRaw;
+            float inverterReactivePowerPhaseB = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Inverter reactive power phase B" << inverterReactivePowerPhaseB << "Var";
+            if (!qFuzzyCompare(m_inverterReactivePowerPhaseB, inverterReactivePowerPhaseB)) {
+                m_inverterReactivePowerPhaseB = inverterReactivePowerPhaseB;
+                emit inverterReactivePowerPhaseBChanged(m_inverterReactivePowerPhaseB);
+            }
 
-    // Grid voltage L2
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float inverterGridVoltagePhaseB = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Inverter grid voltage phase B" << inverterGridVoltagePhaseB << "V";
-    if (!qFuzzyCompare(m_inverterGridVoltagePhaseB, inverterGridVoltagePhaseB)) {
-        m_inverterGridVoltagePhaseB = inverterGridVoltagePhaseB;
-        emit inverterGridVoltagePhaseBChanged(m_inverterGridVoltagePhaseB);
-    }
+            // AC reactive Power L2
+            stream >> paramValueRaw;
+            float inverterReactivePowerPhaseC = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Inverter reactive power phase C" << inverterReactivePowerPhaseC << "Var";
+            if (!qFuzzyCompare(m_inverterReactivePowerPhaseC, inverterReactivePowerPhaseC)) {
+                m_inverterReactivePowerPhaseC = inverterReactivePowerPhaseC;
+                emit inverterReactivePowerPhaseCChanged(m_inverterReactivePowerPhaseC);
+            }
 
-    // Grid voltage L3
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float inverterGridVoltagePhaseC = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Inverter grid voltage phase C" << inverterGridVoltagePhaseC << "V";
-    if (!qFuzzyCompare(m_inverterGridVoltagePhaseC, inverterGridVoltagePhaseC)) {
-        m_inverterGridVoltagePhaseC = inverterGridVoltagePhaseC;
-        emit inverterGridVoltagePhaseCChanged(m_inverterGridVoltagePhaseC);
-    }
+        } else if (paramHash == m_propertyHashes.key("g_sync.u_sg_avg[0]")) {
 
-    // AC Power L1
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float inverterPowerPhaseA = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Inverter power phase A" << inverterPowerPhaseA << "W";
-    if (!qFuzzyCompare(m_inverterPowerPhaseA, inverterPowerPhaseA)) {
-        m_inverterPowerPhaseA = inverterPowerPhaseA;
-        emit inverterPowerPhaseAChanged(m_inverterPowerPhaseA);
-    }
+            // PV voltage 1
+            stream >> paramValueRaw;
+            float inverterPvVoltage1 = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Inverter PV Voltage 1" << inverterPvVoltage1 << "V";
+            if (!qFuzzyCompare(m_inverterPvVoltage1, inverterPvVoltage1)) {
+                m_inverterPvVoltage1 = inverterPvVoltage1;
+                emit inverterPvVoltage1Changed(m_inverterPvVoltage1);
+            }
 
-    // AC Power L2
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float inverterPowerPhaseB = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Inverter power phase B" << inverterPowerPhaseB << "W";
-    if (!qFuzzyCompare(m_inverterPowerPhaseB, inverterPowerPhaseB)) {
-        m_inverterPowerPhaseB = inverterPowerPhaseB;
-        emit inverterPowerPhaseBChanged(m_inverterPowerPhaseB);
-    }
+        } else if (paramHash == m_propertyHashes.key("g_sync.u_sg_avg[1]")) {
 
-    // AC Power L3
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float inverterPowerPhaseC = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Inverter power phase C" << inverterPowerPhaseC << "W";
-    if (!qFuzzyCompare(m_inverterPowerPhaseC, inverterPowerPhaseC)) {
-        m_inverterPowerPhaseC = inverterPowerPhaseC;
-        emit inverterPowerPhaseCChanged(m_inverterPowerPhaseC);
-    }
+            // PV voltage 2
+            stream >> paramValueRaw;
+            float inverterPvVoltage2 = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Inverter PV Voltage 2" << inverterPvVoltage2 << "V";
+            if (!qFuzzyCompare(m_inverterPvVoltage2, inverterPvVoltage2)) {
+                m_inverterPvVoltage2 = inverterPvVoltage2;
+                emit inverterPvVoltage2Changed(m_inverterPvVoltage2);
+            }
 
-    // AC reactive Power L1
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float inverterReactivePowerPhaseA = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Inverter reactive power phase A" << inverterReactivePowerPhaseA << "Var";
-    if (!qFuzzyCompare(m_inverterReactivePowerPhaseA, inverterReactivePowerPhaseA)) {
-        m_inverterReactivePowerPhaseA = inverterReactivePowerPhaseA;
-        emit inverterReactivePowerPhaseAChanged(m_inverterReactivePowerPhaseA);
-    }
 
-    // AC reactive Power L2
-    stream >> paramValueRaw;
-    float inverterReactivePowerPhaseB = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Inverter reactive power phase B" << inverterReactivePowerPhaseB << "Var";
-    if (!qFuzzyCompare(m_inverterReactivePowerPhaseB, inverterReactivePowerPhaseB)) {
-        m_inverterReactivePowerPhaseB = inverterReactivePowerPhaseB;
-        emit inverterReactivePowerPhaseBChanged(m_inverterReactivePowerPhaseB);
-    }
+        } else if (paramHash == m_propertyHashes.key("g_sync.p_pv_lp")) {
 
-    // AC reactive Power L2
-    stream >> paramValueRaw;
-    float inverterReactivePowerPhaseC = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Inverter reactive power phase C" << inverterReactivePowerPhaseC << "Var";
-    if (!qFuzzyCompare(m_inverterReactivePowerPhaseC, inverterReactivePowerPhaseC)) {
-        m_inverterReactivePowerPhaseC = inverterReactivePowerPhaseC;
-        emit inverterReactivePowerPhaseCChanged(m_inverterReactivePowerPhaseC);
-    }
+            // PV power
+            stream >> paramValueRaw;
+            float inverterPvPower = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Inverter PV power" << inverterPvPower << "W";
+            if (!qFuzzyCompare(m_inverterPvPower, inverterPvPower)) {
+                m_inverterPvPower = inverterPvPower;
+                emit inverterPvPowerChanged(m_inverterPvPower);
+            }
 
-    // PV voltage 1
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float inverterPvVoltage1 = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Inverter PV Voltage 1" << inverterPvVoltage1 << "V";
-    if (!qFuzzyCompare(m_inverterPvVoltage1, inverterPvVoltage1)) {
-        m_inverterPvVoltage1 = inverterPvVoltage1;
-        emit inverterPvVoltage1Changed(m_inverterPvVoltage1);
-    }
+        } else if (paramHash == m_propertyHashes.key("gd[0].f_l_slow")) {
 
-    // PV voltage 2
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float inverterPvVoltage2 = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Inverter PV Voltage 2" << inverterPvVoltage2 << "V";
-    if (!qFuzzyCompare(m_inverterPvVoltage2, inverterPvVoltage2)) {
-        m_inverterPvVoltage2 = inverterPvVoltage2;
-        emit inverterPvVoltage2Changed(m_inverterPvVoltage2);
-    }
+            // Grid frequency
+            stream >> paramValueRaw;
+            float inverterFrequency = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Inverter grid frequency" << inverterFrequency << "Hz";
+            if (!qFuzzyCompare(m_inverterFrequency, inverterFrequency)) {
+                m_inverterFrequency = inverterFrequency;
+                emit inverterFrequencyChanged(m_inverterFrequency);
+            }
 
-    // PV power
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float inverterPvPower = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Inverter PV power" << inverterPvPower << "W";
-    if (!qFuzzyCompare(m_inverterPvPower, inverterPvPower)) {
-        m_inverterPvPower = inverterPvPower;
-        emit inverterPvPowerChanged(m_inverterPvPower);
-    }
+        } else if (paramHash == m_propertyHashes.key("iso.r")) {
 
-    // Grid frequency
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float inverterGridFrequency = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Inverter grid frequency" << inverterGridFrequency << "Hz";
-    if (!qFuzzyCompare(m_inverterGridFrequency, inverterGridFrequency)) {
-        m_inverterGridFrequency = inverterGridFrequency;
-        emit inverterGridFrequencyChanged(m_inverterGridFrequency);
-    }
+            // R isolation
+            stream >> paramValueRaw;
+            float inverterResistanceIsolation = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Inverter isolation resistence" << inverterResistanceIsolation << "Ohm";
+            if (!qFuzzyCompare(m_inverterResistanceIsolation, inverterResistanceIsolation)) {
+                m_inverterResistanceIsolation = inverterResistanceIsolation;
+                emit inverterResistanceIsolationChanged(m_inverterResistanceIsolation);
+            }
 
-    // R isolation
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float inverterResistanceIsolation = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Inverter isolation resistence" << inverterResistanceIsolation << "Ohm";
-    if (!qFuzzyCompare(m_inverterResistanceIsolation, inverterResistanceIsolation)) {
-        m_inverterResistanceIsolation = inverterResistanceIsolation;
-        emit inverterResistanceIsolationChanged(m_inverterResistanceIsolation);
-    }
 
-    // ------------- Battery
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float batteryPower = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Battery power" << batteryPower << "W";
-    if (!qFuzzyCompare(m_batteryPower, batteryPower)) {
-        m_batteryPower = batteryPower;
-        emit batteryPowerChanged(m_batteryPower);
-    }
+            // Battery ----------------------------------------
 
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float batteryVoltage = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Battery voltage" << batteryVoltage << "V";
-    if (!qFuzzyCompare(m_batteryVoltage, batteryVoltage)) {
-        m_batteryVoltage = batteryVoltage;
-        emit batteryVoltageChanged(m_batteryVoltage);
-    }
+        } else if (paramHash == m_propertyHashes.key("g_sync.p_accu")) {
 
-    stream >> paramSize >> paramHash >> paramValueRaw;
-    float batteryPercentage = convertRawValueToFloat(paramValueRaw);
-    qCDebug(dcKaco()) << "Battery SOE" << batteryPercentage << "%";
-    if (!qFuzzyCompare(m_batteryPercentage, batteryPercentage)) {
-        m_batteryPercentage = batteryPercentage;
-        emit batteryPercentageChanged(m_batteryPercentage);
+            stream >> paramValueRaw;
+            float batteryPower = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Battery power" << batteryPower << "W";
+            if (!qFuzzyCompare(m_batteryPower, batteryPower)) {
+                m_batteryPower = batteryPower;
+                emit batteryPowerChanged(m_batteryPower);
+            }
+
+        } else if (paramHash == m_propertyHashes.key("bms.u_total")) {
+
+            stream >> paramValueRaw;
+            float batteryVoltage = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Battery voltage" << batteryVoltage << "V";
+            if (!qFuzzyCompare(m_batteryVoltage, batteryVoltage)) {
+                m_batteryVoltage = batteryVoltage;
+                emit batteryVoltageChanged(m_batteryVoltage);
+            }
+
+        } else if (paramHash == m_propertyHashes.key("bms.SOEpercent_total")) {
+
+            stream >> paramValueRaw;
+            float batteryPercentage = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Battery SOE" << batteryPercentage << "%";
+            if (!qFuzzyCompare(m_batteryPercentage, batteryPercentage)) {
+                m_batteryPercentage = batteryPercentage;
+                emit batteryPercentageChanged(m_batteryPercentage);
+            }
+
+            // Vectis ----------------------------------------
+
+        } else if (paramHash == m_propertyHashes.key("rs.p_ext")) {
+
+            stream >> paramValueRaw;
+            float meterPowerPhaseA = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Meter power phase A" << meterPowerPhaseA << "W";
+            if (!qFuzzyCompare(m_meterPowerPhaseA, meterPowerPhaseA)) {
+                m_meterPowerPhaseA = meterPowerPhaseA;
+                emit meterPowerPhaseAChanged(m_meterPowerPhaseA);
+            }
+
+            stream >> paramValueRaw;
+            float meterPowerPhaseB = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Meter power phase B" << meterPowerPhaseB << "W";
+            if (!qFuzzyCompare(m_meterPowerPhaseB, meterPowerPhaseB)) {
+                m_meterPowerPhaseB = meterPowerPhaseB;
+                emit meterPowerPhaseBChanged(m_meterPowerPhaseB);
+            }
+
+            stream >> paramValueRaw;
+            float meterPowerPhaseC = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Meter power phase C" << meterPowerPhaseC << "W";
+            if (!qFuzzyCompare(m_meterPowerPhaseC, meterPowerPhaseC)) {
+                m_meterPowerPhaseC = meterPowerPhaseC;
+                emit meterPowerPhaseAChanged(m_meterPowerPhaseC);
+            }
+
+        } else if (paramHash == m_propertyHashes.key("rs.u_ext")) {
+
+            stream >> paramValueRaw;
+            float meterVoltagePhaseA = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Meter voltage phase A" << meterVoltagePhaseA << "W";
+            if (!qFuzzyCompare(m_meterVoltagePhaseA, meterVoltagePhaseA)) {
+                m_meterVoltagePhaseA = meterVoltagePhaseA;
+                emit meterVoltagePhaseAChanged(m_meterVoltagePhaseA);
+            }
+
+            stream >> paramValueRaw;
+            float meterVoltagePhaseB = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Meter voltage phase B" << meterVoltagePhaseB << "W";
+            if (!qFuzzyCompare(m_meterVoltagePhaseB, meterVoltagePhaseB)) {
+                m_meterVoltagePhaseB = meterVoltagePhaseB;
+                emit meterVoltagePhaseBChanged(m_meterVoltagePhaseB);
+            }
+
+            stream >> paramValueRaw;
+            float meterVoltagePhaseC = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Meter voltage phase C" << meterVoltagePhaseC << "W";
+            if (!qFuzzyCompare(m_meterVoltagePhaseC, meterVoltagePhaseC)) {
+                m_meterVoltagePhaseC = meterVoltagePhaseC;
+                emit meterVoltagePhaseAChanged(m_meterVoltagePhaseC);
+            }
+
+        } else if (paramHash == m_propertyHashes.key("rs.f_ext")) {
+
+            stream >> paramValueRaw;
+            float meterFrequency = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Meter frequency 1" << meterFrequency << "Hz";
+            if (!qFuzzyCompare(m_meterFrequency, meterFrequency)) {
+                m_meterFrequency = meterFrequency;
+                emit meterFrequencyChanged(m_meterFrequency);
+            }
+
+            // Unneeded properties
+            stream >> paramValueRaw;
+            stream >> paramValueRaw;
+
+        } else {
+            // Unknown property hash received...let's skip and see if we find more valid data
+            qCWarning(dcKaco()) << "Unknown property hash. Skipping property with size" << paramSize << "and hash value" << paramHash;
+            quint8 skippedByte;
+            for (int i = 0; i < paramSize; i++) {
+                stream >> skippedByte;
+            }
+        }
     }
 
     emit valuesUpdated();
@@ -932,8 +1108,8 @@ QByteArray KacoClient::buildPackage(MessageType messageType, const QByteArray &p
     stream << static_cast<quint32>(calculateChecksum(payload));
 
     // The rest is payload
-    for (int i = 0; i < package.count(); i++)
-        stream << static_cast<quint8>(package.at(i));
+    for (int i = 0; i < payload.count(); i++)
+        stream << static_cast<quint8>(payload.at(i));
 
     return package;
 }
@@ -997,6 +1173,11 @@ QByteArray KacoClient::convertUint32ToByteArrayLittleEndian(quint32 value)
     stream.setByteOrder(QDataStream::LittleEndian);
     stream << value;
     return data;
+}
+
+float KacoClient::convertEnergyToFloat(quint32 rawValue, uint offset, float scale)
+{
+    return static_cast<float>((static_cast<qint64>(rawValue) * scale) / static_cast<float>(static_cast<quint64>(1) << offset));
 }
 
 bool KacoClient::picRefreshRequired()

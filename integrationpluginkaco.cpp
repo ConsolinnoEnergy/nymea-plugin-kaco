@@ -110,10 +110,59 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
 
             // TODO: authenticate before finish setup
 
+            // Update all child devices
+            foreach (Thing *thing, myThings().filterByParentId(thing->id())) {
+                thing->setStateValue("connected", connected);
+            }
+
         });
 
         connect(client, &KacoClient::inverterPvPowerChanged, thing, [=](float inverterPvPower){
-            thing->setStateValue(inverterCurrentPowerStateTypeId, inverterPvPower);
+            thing->setStateValue(inverterCurrentPowerStateTypeId, -inverterPvPower);
+        });
+
+        connect(client, &KacoClient::inverterPvVoltage1Changed, thing, [=](float inverterPvVoltage1){
+            thing->setStateValue(inverterPvVoltage1StateTypeId, inverterPvVoltage1);
+        });
+
+        connect(client, &KacoClient::inverterPvVoltage2Changed, thing, [=](float inverterPvVoltage2){
+            thing->setStateValue(inverterPvVoltage2StateTypeId, inverterPvVoltage2);
+        });
+
+        // Power
+
+        connect(client, &KacoClient::inverterPowerPhaseAChanged, thing, [=](float inverterPowerPhaseA){
+            thing->setStateValue(inverterCurrentPowerPhaseAStateTypeId, -inverterPowerPhaseA);
+        });
+
+        connect(client, &KacoClient::inverterPowerPhaseBChanged, thing, [=](float inverterPowerPhaseB){
+            thing->setStateValue(inverterCurrentPowerPhaseBStateTypeId, -inverterPowerPhaseB);
+        });
+
+        connect(client, &KacoClient::inverterPowerPhaseCChanged, thing, [=](float inverterPowerPhaseC){
+            thing->setStateValue(inverterCurrentPowerPhaseCStateTypeId, -inverterPowerPhaseC);
+        });
+
+        // Voltage
+
+        connect(client, &KacoClient::inverterGridVoltagePhaseAChanged, thing, [=](float inverterGridVoltagePhaseA){
+            thing->setStateValue(inverterVoltagePhaseAStateTypeId, inverterGridVoltagePhaseA);
+        });
+
+        connect(client, &KacoClient::inverterGridVoltagePhaseBChanged, thing, [=](float inverterGridVoltagePhaseB){
+            thing->setStateValue(inverterVoltagePhaseBStateTypeId, inverterGridVoltagePhaseB);
+        });
+
+        connect(client, &KacoClient::inverterGridVoltagePhaseCChanged, thing, [=](float inverterGridVoltagePhaseC){
+            thing->setStateValue(inverterVoltagePhaseCStateTypeId, inverterGridVoltagePhaseC);
+        });
+
+        connect(client, &KacoClient::inverterFrequencyChanged, thing, [=](float frequency){
+            thing->setStateValue(inverterFrequencyStateTypeId, frequency);
+        });
+
+        connect(client, &KacoClient::inverterResistanceIsolationChanged, thing, [=](float inverterResistanceIsolation){
+            thing->setStateValue(inverterResistanceIsolationStateTypeId, inverterResistanceIsolation);
         });
 
         m_clients.insert(thing, client);
@@ -129,9 +178,23 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
             return;
         }
 
-//        connect(client, &KacoClient::meter, thing, [=](float inverterPvPower){
-//            thing->setStateValue(inverterCurrentPowerStateTypeId, inverterPvPower);
-//        });
+        // Set the initial connected state
+        thing->setStateValue(meterConnectedStateTypeId, client->connected());
+
+        // Since we need to summ up stuff, lets react on the valuesChanged signal
+        connect(client, &KacoClient::valuesUpdated, thing, [=](){
+            thing->setStateValue(meterCurrentPowerPhaseAStateTypeId, client->meterPowerPhaseA());
+            thing->setStateValue(meterCurrentPowerPhaseBStateTypeId, client->meterPowerPhaseB());
+            thing->setStateValue(meterCurrentPowerPhaseCStateTypeId, client->meterPowerPhaseC());
+            thing->setStateValue(meterCurrentPowerStateTypeId, client->meterPowerPhaseA() + client->meterPowerPhaseB() + client->meterPowerPhaseC());
+            thing->setStateValue(meterVoltagePhaseAStateTypeId, client->meterVoltagePhaseA());
+            thing->setStateValue(meterVoltagePhaseBStateTypeId, client->meterVoltagePhaseB());
+            thing->setStateValue(meterVoltagePhaseCStateTypeId, client->meterVoltagePhaseC());
+            thing->setStateValue(meterFrequencyStateTypeId, client->meterFrequency());
+
+        });
+
+        info->finish(Thing::ThingErrorNoError);
 
     } else if (thing->thingClassId() == batteryThingClassId) {
         // Get the client for this battery
@@ -142,21 +205,27 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
             return;
         }
 
+        // Set the initial connected state
+        thing->setStateValue(batteryConnectedStateTypeId, client->connected());
+
         connect(client, &KacoClient::batteryPercentageChanged, thing, [=](float percentage){
             thing->setStateValue(batteryBatteryLevelStateTypeId, percentage);
             thing->setStateValue(batteryBatteryCriticalStateTypeId, percentage <= 10);
         });
 
         connect(client, &KacoClient::batteryPowerChanged, thing, [=](float currentPower){
-            thing->setStateValue(batteryCurrentPowerStateTypeId, currentPower);
-            if (currentPower > 0) {
+            float power = currentPower;
+            thing->setStateValue(batteryCurrentPowerStateTypeId, power);
+            if (power > 0) {
                 thing->setStateValue(batteryChargingStateStateTypeId, "charging");
-            } else if (currentPower < 0) {
+            } else if (power < 0) {
                 thing->setStateValue(batteryChargingStateStateTypeId, "discharging");
             } else {
                 thing->setStateValue(batteryChargingStateStateTypeId, "idle");
             }
         });
+
+        info->finish(Thing::ThingErrorNoError);
     }
 }
 

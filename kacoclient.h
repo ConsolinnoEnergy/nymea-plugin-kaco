@@ -42,7 +42,13 @@ public:
     float meterSelfConsumptionPhaseA() const;
     float meterSelfConsumptionPhaseB() const;
     float meterSelfConsumptionPhaseC() const;
-    // Skipped: Ah Battery
+    float meterVoltagePhaseA() const;
+    float meterVoltagePhaseB() const;
+    float meterVoltagePhaseC() const;
+    float meterPowerPhaseA() const;
+    float meterPowerPhaseB() const;
+    float meterPowerPhaseC() const;
+    float meterFrequency() const;
 
     // Inverter data
     float inverterGridVoltagePhaseA() const;
@@ -57,7 +63,7 @@ public:
     float inverterPvVoltage1() const;
     float inverterPvVoltage2() const;
     float inverterPvPower() const;
-    float inverterGridFrequency() const;
+    float inverterFrequency() const;
     float inverterResistanceIsolation() const;
 
     // Battery data
@@ -93,6 +99,13 @@ signals:
     void meterSelfConsumptionPhaseAChanged(float meterSelfConsumptionPhaseA);
     void meterSelfConsumptionPhaseBChanged(float meterSelfConsumptionPhaseB);
     void meterSelfConsumptionPhaseCChanged(float meterSelfConsumptionPhaseC);
+    void meterVoltagePhaseAChanged(float meterVoltagePhaseA);
+    void meterVoltagePhaseBChanged(float meterVoltagePhaseB);
+    void meterVoltagePhaseCChanged(float meterVoltagePhaseC);
+    void meterPowerPhaseAChanged(float meterPowerPhaseA);
+    void meterPowerPhaseBChanged(float meterPowerPhaseB);
+    void meterPowerPhaseCChanged(float meterPowerPhaseC);
+    void meterFrequencyChanged(float meterFrequency);
 
     // Inverter signals
     void inverterGridVoltagePhaseAChanged(float inverterGridVoltagePhaseA);
@@ -107,7 +120,7 @@ signals:
     void inverterPvVoltage1Changed(float inverterPvVoltage1);
     void inverterPvVoltage2Changed(float inverterPvVoltage2);
     void inverterPvPowerChanged(float inverterPvPower);
-    void inverterGridFrequencyChanged(float inverterGridFrequency);
+    void inverterFrequencyChanged(float inverterFrequency);
     void inverterResistanceIsolationChanged(float inverterResistanceIsolation);
 
     // Battery signals
@@ -157,6 +170,8 @@ private:
     QStringList m_dateProperties;
     QStringList m_meterProperties;
 
+    QHash<quint16, QString> m_propertyHashes;
+
     // Meter information
     float m_meterInverterEnergyReturnedPhaseA = 0;
     float m_meterInverterEnergyReturnedPhaseB = 0;
@@ -174,6 +189,15 @@ private:
     float m_meterSelfConsumptionPhaseB = 0;
     float m_meterSelfConsumptionPhaseC = 0;
 
+    // Vectis information
+    float m_meterVoltagePhaseA = 0;
+    float m_meterVoltagePhaseB = 0;
+    float m_meterVoltagePhaseC = 0;
+    float m_meterPowerPhaseA = 0;
+    float m_meterPowerPhaseB = 0;
+    float m_meterPowerPhaseC = 0;
+    float m_meterFrequency = 0;
+
     // Inverter information
     float m_inverterGridVoltagePhaseA = 0;
     float m_inverterGridVoltagePhaseB = 0;
@@ -187,8 +211,8 @@ private:
     float m_inverterPvVoltage1 = 0;
     float m_inverterPvVoltage2 = 0;
     float m_inverterPvPower = 0;
-    float m_inverterGridFrequency = 0;
-    float m_inverterResistanceIsolation = 0;
+    float m_inverterFrequency = 0;
+    float m_inverterResistanceIsolation = 0;    
 
     // Battery information
     float m_batteryPower = 0;
@@ -214,16 +238,16 @@ private:
     QString byteToHexString(quint8 byte);
     QString byteArrayToHexString(const QByteArray &byteArray);
 
-    QByteArray generateRandomBytes(int count = 6);
+    QByteArray generateRandomBytes(int count = 10);
 
     qint32 calculateStringHashCode(const QString &name);
     quint32 calculateChecksum(const QByteArray &data);
 
     float convertRawValueToFloat(quint32 rawValue);
     QByteArray convertUint32ToByteArrayLittleEndian(quint32 value);
+    float convertEnergyToFloat(quint32 rawValue, uint offset, float scale);
 
     bool picRefreshRequired();
-
     void printHashCodes(const QStringList &properties);
 
 private slots:

@@ -11,7 +11,7 @@
                 {
                     "id": "93d3facb-5ef7-4aff-a7de-7d4ea5a207f3",
                     "name": "inverter",
-                    "displayName": "Kaco inverter",
+                    "displayName": "Kaco Inverter",
                     "createMethods": ["discovery", "user"],
                     "interfaces": [ "solarinverter", "connectable" ],
                     "providedInterfaces": [ "energymeter", "energystorage"],
@@ -37,7 +37,7 @@
                             "name":"serialNumber",
                             "displayName": "Serial number",
                             "type": "QString",
-                            "defaultValue": "Unkown"
+                            "defaultValue": ""
                         },
                         {
                             "id": "71124543-468e-4699-9d10-ab6cdb7e09c0",
@@ -75,13 +75,107 @@
                             "type": "double",
                             "unit": "Watt",
                             "defaultValue": 0.00
+                        },
+                        {
+                            "id": "999d8bd6-069d-48b9-b0da-5f098e3bbd47",
+                            "name": "pvVoltage1",
+                            "displayName": "Voltage PV 1",
+                            "displayNameEvent": "Voltage PV 1 changed",
+                            "type": "double",
+                            "unit": "Volt",
+                            "defaultValue": 0.00,
+                            "filter": "adaptive",
+                            "suggestLogging": true
+                        },
+                        {
+                            "id": "886265fe-61ce-42e9-8fea-1f7afd5742d0",
+                            "name": "pvVoltage2",
+                            "displayName": "Voltage PV 2",
+                            "displayNameEvent": "Voltage PV 2 changed",
+                            "type": "double",
+                            "unit": "Volt",
+                            "defaultValue": 0.00,
+                            "filter": "adaptive",
+                            "suggestLogging": true
+                        },
+                        {
+                            "id": "90977326-b6b9-4260-b417-e03a768e7ff9",
+                            "name": "currentPowerPhaseA",
+                            "displayName": "Current power phase A",
+                            "displayNameEvent": "Current power phase A changed",
+                            "type": "double",
+                            "unit": "Watt",
+                            "defaultValue": 0.00
+                        },
+                        {
+                            "id": "934af5f5-0917-421d-bdbb-62429ebcd469",
+                            "name": "currentPowerPhaseB",
+                            "displayName": "Current power phase B",
+                            "displayNameEvent": "Current power phase B changed",
+                            "type": "double",
+                            "unit": "Watt",
+                            "defaultValue": 0.00
+                        },
+                        {
+                            "id": "f9464635-8da7-482d-834b-92835bb0048a",
+                            "name": "currentPowerPhaseC",
+                            "displayName": "Current power phase C",
+                            "displayNameEvent": "Current power phase C changed",
+                            "type": "double",
+                            "unit": "Watt",
+                            "defaultValue": 0.00
+                        },
+                        {
+                            "id": "44a6b03f-19a6-4d26-949d-a0342b6fd0e8",
+                            "name": "voltagePhaseA",
+                            "displayName": "Phase A voltage",
+                            "displayNameEvent": "Phase A volatage changed",
+                            "type": "double",
+                            "unit": "Volt",
+                            "defaultValue": 0.00
+                        },
+                        {
+                            "id": "5b349f6e-6e57-453e-957d-ac3196d53d0b",
+                            "name": "voltagePhaseB",
+                            "displayName": "Phase B voltage",
+                            "displayNameEvent": "Phase B voltage changed",
+                            "type": "double",
+                            "unit": "Volt",
+                            "defaultValue": 0.00
+                        },
+                        {
+                            "id": "61373dcd-be48-41b9-8cbe-c1c112451533",
+                            "name": "voltagePhaseC",
+                            "displayName": "Phase C voltage",
+                            "displayNameEvent": "Phase C voltage changed",
+                            "type": "double",
+                            "unit": "Volt",
+                            "defaultValue": 0.00
+                        },
+                        {
+                            "id": "c54b3932-1dca-41f6-b172-1bc6e4efaebc",
+                            "name": "frequency",
+                            "displayName": "Frequency",
+                            "displayNameEvent": "Frequency changed",
+                            "type": "double",
+                            "unit": "Hertz",
+                            "defaultValue": 0.00
+                        },
+                        {
+                            "id": "74f9a849-d9cc-4290-9270-d1b07e9ce053",
+                            "name": "resistanceIsolation",
+                            "displayName": "Resistance isolation",
+                            "displayNameEvent": "Resistance isolation changed",
+                            "type": "double",
+                            "unit": "Ohm",
+                            "defaultValue": 0.00
                         }
                     ]
                 },
                 {
                     "id": "0fe4d494-7582-4c60-8e06-53393ccbc172",
                     "name": "meter",
-                    "displayName": "Kaco meter",
+                    "displayName": "Kaco Energy Meter",
                     "createMethods": ["auto"],
                     "interfaces": ["energymeter", "connectable"],
                     "paramTypes":[
@@ -213,13 +307,22 @@
                             "unit": "Volt",
                             "defaultValue": 0.00,
                             "filter": "adaptive"
+                        },
+                        {
+                            "id": "b3aeeb45-9e39-4723-ab6e-ae6dc55630c9",
+                            "name": "frequency",
+                            "displayName": "Frequency",
+                            "displayNameEvent": "Frequency changed",
+                            "type": "double",
+                            "unit": "Hertz",
+                            "defaultValue": 0.00
                         }
                     ]
                 },
                 {
                     "id": "113c7d91-9e5a-44b7-9359-d5b5bd3bfc08",
                     "name": "battery",
-                    "displayName": "Kaco battery",
+                    "displayName": "Kaco Battery",
                     "createMethods": ["auto"],
                     "interfaces": ["energystorage", "connectable"],
                     "paramTypes":[
