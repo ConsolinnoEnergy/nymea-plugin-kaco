@@ -83,7 +83,7 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
     m_meterProperties << "dd.e_grid_inj";
     m_meterProperties << "dd.e_grid_cons";
     m_meterProperties << "dd.e_compensation";
-    m_meterProperties << "dd.q_acc";
+    //m_meterProperties << "dd.q_acc";
     printHashCodes(m_meterProperties);
 
     // 55aa 34 1400 e70a0000 aa3a 057a 4878 6778 8678 bcca dbca 5396 94d8 6afd
@@ -131,15 +131,16 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
     connect(m_socket, &QTcpSocket::stateChanged, this, [=](QAbstractSocket::SocketState socketState){
         qCDebug(dcKaco()) << "Socket state changed" << QString("%1:%2").arg(m_hostAddress.toString()).arg(m_port) << socketState;
     });
-
-
-
-
 }
 
 bool KacoClient::connected() const
 {
     return (m_socket->state() == QAbstractSocket::ConnectedState);
+}
+
+QString KacoClient::serialNumber() const
+{
+    return m_serialNumber;
 }
 
 float KacoClient::meterInverterEnergyReturnedPhaseA() const
@@ -215,157 +216,6 @@ float KacoClient::meterSelfConsumptionPhaseB() const
 float KacoClient::meterSelfConsumptionPhaseC() const
 {
     return m_meterSelfConsumptionPhaseC;
-}
-
-bool KacoClient::sendData(const QByteArray &data)
-{
-    if (!connected())
-        return false;
-
-    // We sent something, we are waiting for something
-    m_requestPending = true;
-
-    qCDebug(dcKaco()) << "-->" << qUtf8Printable(data.toHex()) << "(count:" << data.count() << ")";
-    int writtenBytes = m_socket->write(data);
-    return (writtenBytes == data.count());
-}
-
-void KacoClient::sendPicRequest()
-{
-    // 55aa 30 0b00 ad030000 1b3d165f273c baa259c8 00
-    // edde 30 3900 e00b0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 bfb3ae2fb0bf 00 00000000
-
-    // 55aa 30 0b00 7e040000 991f3a2db9e0 0040e4a1 01
-    // edde 30 3900 650c0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 dae8f0788096 02 00000100
-
-    // 55aa 30 0b00 c8040000 d26765783ed9 90a42640 01
-    // edde 30 3900 300c0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 98a7bd5afeb7 02 00000100
-
-    // 55aa 30 0b00 06050000 aefdd5020c77 1950f3a4 01
-    // edde 30 3900 c30b0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 42db89d3c065 02 00000100
-
-    qCDebug(dcKaco()) << "Sending PIC data request...";
-
-    QByteArray data;
-    QDataStream stream(&data, QIODevice::ReadWrite);
-    stream.setByteOrder(QDataStream::LittleEndian);
-    // (20 bytes) 55 aa 30 0b 00
-    stream << static_cast<quint8>(0x55); // 0: Static byte
-    stream << static_cast<quint8>(0xaa); // 1: Static byte
-    stream << static_cast<quint8>(MessageTypePic); // 2: Message type
-    stream << static_cast<quint16>(0x0b); // 3,4: Message size, fixed 20 bytes
-
-    // 5, 6, 7, 8: Data checksum, fill in later | 3a 04 00 00
-    stream << static_cast<quint32>(0);
-
-    // 9, 10, 11, 12, 13, 14: Random key bytes
-    // 15, 16, 17, 18: user key (will be overwritten later if required)
-    QByteArray newRandomBytes = generateRandomBytes(10);
-    qCDebug(dcKaco()) << "Fill in random bytes" << byteArrayToHexString(newRandomBytes);
-    for (int i = 0; i < newRandomBytes.size(); i++)
-        stream << static_cast<quint8>(newRandomBytes.at(i));
-
-    // 19: userId
-    stream << m_userId;
-
-    // If we already received a random pic from the server, lets send the actual key encrypted
-    if (m_userId != 0) {
-        // 15, 16, 17, 18: userkey uint32
-        QByteArray keyBuffer(4, '0');
-        keyBuffer[0] = m_userPasswordHash & 0xff;
-        keyBuffer[1] = (m_userPasswordHash >> 8) & 0xff;
-        keyBuffer[2] = (m_userPasswordHash >> 16) & 0xff;
-        keyBuffer[3] = (m_userPasswordHash >> 24) & 0xff;
-
-        // Do some black magic with the key using the random bytes
-
-        qCDebug(dcKaco()) << "key buffer start" << byteArrayToHexString(keyBuffer);
-        qCDebug(dcKaco()) << "Using pic response random bytes" << byteArrayToHexString(m_picRandomKey);
-
-        quint8 keyLength = keyBuffer.size();
-        for (quint8 i = 0; i < keyLength && i < m_picRandomKey.size(); i++)
-            keyBuffer[i] = keyBuffer.at(i) + m_picRandomKey.at(i);
-
-        //qCDebug(dcKaco()) << "key buffer adding random bytes" << byteArrayToHexString(keyBuffer);
-        quint8 iterations = 2;
-        for (quint8 i = 0; i < iterations; i++) {
-            keyBuffer[i % keyLength] = keyBuffer.at(i % keyLength) + 1;
-            keyBuffer[i % keyLength] = keyBuffer.at(i % keyLength) + keyBuffer.at((i + 10) % keyLength);
-            keyBuffer[(i + 3) % keyLength] = keyBuffer.at((i + 3) % keyLength) * keyBuffer.at((i + 11) % keyLength);
-            keyBuffer[i % keyLength] = keyBuffer.at(i % keyLength) + keyBuffer.at((i + 7) % keyLength);
-            //qCDebug(dcKaco()) << "key buffer after iteration" << i << byteArrayToHexString(keyBuffer);
-        }
-
-        qCDebug(dcKaco()) << "key buffer end  " << byteArrayToHexString(keyBuffer);
-        data[15] = keyBuffer.at(0);
-        data[16] = keyBuffer.at(1);
-        data[17] = keyBuffer.at(2);
-        data[18] = keyBuffer.at(3);
-    }
-
-    // Calculate checksum 5, 6, 7, 8
-    quint32 checksum = calculateChecksum(data.mid(9, data.length() - 9));
-    data[5] = checksum & 0xff;
-    data[6] = (checksum >> 8) & 0xff;
-    data[7] = (checksum >> 16) & 0xff;
-    data[8] = (checksum >> 24) & 0xff;
-
-    sendData(data);
-}
-
-void KacoClient::sendInverterRequest()
-{
-    QByteArray data;
-    QDataStream stream(&data, QIODevice::ReadWrite);
-    stream.setByteOrder(QDataStream::LittleEndian);
-
-    // 0, 1: Static start bytes
-    stream << static_cast<quint8>(0x55);
-    stream << static_cast<quint8>(0xaa);
-
-    // 2: Message type
-    stream << static_cast<quint8>(MessageTypeIds);
-
-    // 3, 4: Message length, fill in later
-    stream << static_cast<quint16>(0x00);
-
-    // 5, 6, 7, 8: Data checksum, fill in later
-    stream << static_cast<quint32>(0);
-
-    // The list of date property hashes
-    foreach (const QString &dateProperty, m_dateProperties) {
-        stream << static_cast<quint16>(calculateStringHashCode(dateProperty) & 0xffff);
-    }
-
-    // The list of meter property hashes
-    foreach (const QString &meterProperty, m_meterProperties) {
-        stream << static_cast<quint16>(calculateStringHashCode(meterProperty) & 0xffff);
-    }
-
-    // The list of inverter property hashes
-    foreach (const QString &inverterProperty, m_inverterProperties) {
-        stream << static_cast<quint16>(calculateStringHashCode(inverterProperty) & 0xffff);
-    }
-
-    // The list of battery property hashes
-    foreach (const QString &batteryProperty, m_batteryProperties) {
-        stream << static_cast<quint16>(calculateStringHashCode(batteryProperty) & 0xffff);
-    }
-
-
-    // Fill in message length 3, 4
-    quint16 messageLength = data.count() - 9; // -9 start bytes
-    data[3] = messageLength & 0xff;
-    data[4] = (messageLength >> 8) & 0xff;
-
-    // Fill in message checksum 5, 6, 7, 8
-    quint32 checksum = calculateChecksum(data.mid(9, data.length() - 9));
-    data[5] = checksum & 0xff;
-    data[6] = (checksum >> 8) & 0xff;
-    data[7] = (checksum >> 16) & 0xff;
-    data[8] = (checksum >> 24) & 0xff;
-
-    sendData(data);
 }
 
 float KacoClient::inverterGridVoltagePhaseA() const
@@ -489,8 +339,22 @@ void KacoClient::resetData()
     m_inverterGridVoltagePhaseC = 0;
 }
 
+
+bool KacoClient::sendData(const QByteArray &data)
+{
+    if (!connected())
+        return false;
+
+    // We sent something, we are waiting for something
+    m_requestPending = true;
+
+    qCDebug(dcKaco()) << "-->" << qUtf8Printable(data.toHex()) << "(count:" << data.count() << ")";
+    int writtenBytes = m_socket->write(data);
+    return (writtenBytes == data.count());
+}
+
 void KacoClient::processResponse(const QByteArray &response)
-{    
+{
     // Data arrived while we where waiting for a message, reset
     m_requestPending = false;
     m_requestPendingTicks = 0;
@@ -512,7 +376,7 @@ void KacoClient::processResponse(const QByteArray &response)
         break;
     case MessageTypeIdsResponse:
         switch (m_state) {
-        case StateRequestInverter:
+        case StateRefreshData:
             processInverterResponse(response);
             break;
         default:
@@ -526,6 +390,74 @@ void KacoClient::processResponse(const QByteArray &response)
     }
 }
 
+void KacoClient::sendPicRequest()
+{
+    // 55aa 30 0b00 ad030000 1b3d165f273c baa259c8 00
+    // edde 30 3900 e00b0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 bfb3ae2fb0bf 00 00000000
+
+    // 55aa 30 0b00 7e040000 991f3a2db9e0 0040e4a1 01
+    // edde 30 3900 650c0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 dae8f0788096 02 00000100
+
+    // 55aa 30 0b00 c8040000 d26765783ed9 90a42640 01
+    // edde 30 3900 300c0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 98a7bd5afeb7 02 00000100
+
+    // 55aa 30 0b00 06050000 aefdd5020c77 1950f3a4 01
+    // edde 30 3900 c30b0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 42db89d3c065 02 00000100
+
+    qCDebug(dcKaco()) << "Sending PIC data request...";
+
+    QByteArray payload;
+    QDataStream stream(&payload, QIODevice::ReadWrite);
+    stream.setByteOrder(QDataStream::LittleEndian);
+
+    // 0 - 5: Random key bytes 6 bytes
+    // 6 - 9: user key 4 bytes (will be encrypted later if not the first message)
+    QByteArray newRandomBytes = generateRandomBytes(10);
+    //qCDebug(dcKaco()) << "Fill in random bytes" << byteArrayToHexString(newRandomBytes);
+    for (int i = 0; i < newRandomBytes.size(); i++)
+        stream << static_cast<quint8>(newRandomBytes.at(i));
+
+    // 10: userId
+    stream << m_userId;
+
+    // If we already received a random pic key from the server,
+    // lets send the actual key encrypted using black magic
+    if (m_userId != 0) {
+        QByteArray keyBuffer(4, '0');
+        keyBuffer[0] = m_userPasswordHash & 0xff;
+        keyBuffer[1] = (m_userPasswordHash >> 8) & 0xff;
+        keyBuffer[2] = (m_userPasswordHash >> 16) & 0xff;
+        keyBuffer[3] = (m_userPasswordHash >> 24) & 0xff;
+
+        // Do some black magic with the key using servers the random bytes
+
+        //qCDebug(dcKaco()) << "key buffer start" << byteArrayToHexString(keyBuffer);
+        //qCDebug(dcKaco()) << "Using pic response random bytes" << byteArrayToHexString(m_picRandomKey);
+
+        quint8 keyLength = keyBuffer.size();
+        for (quint8 i = 0; i < keyLength && i < m_picRandomKey.size(); i++)
+            keyBuffer[i] = keyBuffer.at(i) + m_picRandomKey.at(i);
+
+        //qCDebug(dcKaco()) << "key buffer adding random bytes" << byteArrayToHexString(keyBuffer);
+        quint8 iterations = 2;
+        for (quint8 i = 0; i < iterations; i++) {
+            keyBuffer[i % keyLength] = keyBuffer.at(i % keyLength) + 1;
+            keyBuffer[i % keyLength] = keyBuffer.at(i % keyLength) + keyBuffer.at((i + 10) % keyLength);
+            keyBuffer[(i + 3) % keyLength] = keyBuffer.at((i + 3) % keyLength) * keyBuffer.at((i + 11) % keyLength);
+            keyBuffer[i % keyLength] = keyBuffer.at(i % keyLength) + keyBuffer.at((i + 7) % keyLength);
+            //qCDebug(dcKaco()) << "key buffer after iteration" << i << byteArrayToHexString(keyBuffer);
+        }
+
+        //qCDebug(dcKaco()) << "key buffer end  " << byteArrayToHexString(keyBuffer);
+        payload[6] = keyBuffer.at(0);
+        payload[7] = keyBuffer.at(1);
+        payload[8] = keyBuffer.at(2);
+        payload[9] = keyBuffer.at(3);
+    }
+
+    sendData(buildPackage(MessageTypePic, payload));
+}
+
 void KacoClient::processPicResponse(const QByteArray &message)
 {
     qCDebug(dcKaco()) << "Process PIC data...";
@@ -537,8 +469,7 @@ void KacoClient::processPicResponse(const QByteArray &message)
             m_userType = 1;
             qCDebug(dcKaco()) << "- User type:" << m_userType;
         }
-        qCDebug(dcKaco()) << "- PIC high version:" << byteToHexString(m_picHighVersion) << m_picHighVersion;
-        qCDebug(dcKaco()) << "- PIC low version:" << byteToHexString(m_picLowVersion) << m_picLowVersion;
+        qCDebug(dcKaco()) << "- PIC version: " << QString("%1.%2").arg(m_picHighVersion).arg(m_picLowVersion);
     }
 
     if (message.count() >= 25) {
@@ -547,9 +478,13 @@ void KacoClient::processPicResponse(const QByteArray &message)
     }
 
     if (message.count() >= 55) {
-        m_serialNumber = message.mid(35, 20);
+        QString serialNumber = QString::fromUtf8(message.mid(35, 20)).trimmed();
         // 68271939269c SN: 201210245578
-        qCDebug(dcKaco()) << "- Serial number:" << QString::fromUtf8(m_serialNumber).trimmed();
+        qCDebug(dcKaco()) << "- Serial number:" << m_serialNumber;
+        if (m_serialNumber != serialNumber) {
+            m_serialNumber = serialNumber;
+            emit serialNumberChanged(m_serialNumber);
+        }
     }
 
     if (message.count() >= 61) {
@@ -575,22 +510,51 @@ void KacoClient::processPicResponse(const QByteArray &message)
     if (m_state == StateAuthenticate) {
         m_picCounter++;
         if (m_picCounter >= 1) {
-            // Important: set the user id to 1 after the first cycle
+            // Important: set the user id to 2 after the first cycle
             m_userId = 2;
         }
 
         if (m_picCounter > 3) {
             // We are done, we sent the pic 3 times successfully.
-            setState(StateRequestInverter);
+            setState(StateRefreshData);
             return;
         }
     } else if (m_state == StateRefreshKey) {
-        // Key has been refreshed successfully...continue with data fetching
-        setState(StateRequestInverter);
+        // Key has been refreshed successfully...continue with data polling
+        setState(StateRefreshData);
         m_refreshTimer.stop();
         m_refreshTimer.start();
         return;
     }
+}
+
+void KacoClient::sendInverterRequest()
+{
+    QByteArray payload;
+    QDataStream stream(&payload, QIODevice::ReadWrite);
+    stream.setByteOrder(QDataStream::LittleEndian);
+
+    // The list of date property hashes
+    foreach (const QString &dateProperty, m_dateProperties) {
+        stream << static_cast<quint16>(calculateStringHashCode(dateProperty) & 0xffff);
+    }
+
+    // The list of meter property hashes
+    foreach (const QString &meterProperty, m_meterProperties) {
+        stream << static_cast<quint16>(calculateStringHashCode(meterProperty) & 0xffff);
+    }
+
+    // The list of inverter property hashes
+    foreach (const QString &inverterProperty, m_inverterProperties) {
+        stream << static_cast<quint16>(calculateStringHashCode(inverterProperty) & 0xffff);
+    }
+
+    // The list of battery property hashes
+    foreach (const QString &batteryProperty, m_batteryProperties) {
+        stream << static_cast<quint16>(calculateStringHashCode(batteryProperty) & 0xffff);
+    }
+
+    sendData(buildPackage(MessageTypeIds, payload));
 }
 
 void KacoClient::processInverterResponse(const QByteArray &message)
@@ -792,12 +756,6 @@ void KacoClient::processInverterResponse(const QByteArray &message)
         emit meterSelfConsumptionPhaseCChanged(m_meterSelfConsumptionPhaseC);
     }
 
-    // Battery AH
-    stream >> paramSize >> paramHash;
-    for (int i = 0; i < 3; i++)
-        stream >> paramValueRaw;
-
-
     // ------------- Inverter
 
     // Grid voltage L1
@@ -951,69 +909,34 @@ void KacoClient::processInverterResponse(const QByteArray &message)
         emit batteryPercentageChanged(m_batteryPercentage);
     }
 
-
+    emit valuesUpdated();
 }
 
-//void KacoClient::processIds(const QByteArray &message)
-//{
+QByteArray KacoClient::buildPackage(MessageType messageType, const QByteArray &payload)
+{
+    QByteArray package;
+    QDataStream stream(&package, QIODevice::ReadWrite);
+    stream.setByteOrder(QDataStream::LittleEndian);
 
-//    // Request: 55aa 34 1000 84090000 4878 6778 8678 bcca dbca 5396 94d8 6afd
+    // 0, 1: Static start bytes
+    stream << static_cast<quint8>(0x55);
+    stream << static_cast<quint8>(0xaa);
 
-//    // ed de 35 4800 fc1a0000 04004878c7746a4304006778f8866c4304008678d3d16a430400bcca052928440400dbca87e60d4404005396bbfc0245040094d89a9953430c006afd80786843801b6b4348ea6a43
+    // 2: Message type
+    stream << static_cast<quint8>(messageType);
 
-//    //    Grid Voltage             238.4   238.8   237.5 V
-//    //    VECTIS Voltage           237.3   237.3   237.3 V
-//    //    PV Voltage               585.9   560.4 V
-//    //    PV Power                 348.7 W
-//    //    U battery                201.0 V
+    // 3, 4: Message length, fill in later
+    stream << static_cast<quint16>(payload.length());
 
+    // 5, 6, 7, 8: Data checksum, fill in later
+    stream << static_cast<quint32>(calculateChecksum(payload));
 
-//    QByteArray data = message;
-//    QDataStream stream(&data, QIODevice::ReadOnly);
-//    stream.setByteOrder(QDataStream::LittleEndian);
+    // The rest is payload
+    for (int i = 0; i < package.count(); i++)
+        stream << static_cast<quint8>(package.at(i));
 
-//    quint16 responseStart;
-//    stream >> responseStart;
-
-//    quint8 messageType;
-//    stream >> messageType;
-
-//    quint16 messageSize;
-//    stream >> messageSize;
-
-//    quint32 checksum;
-//    stream >> checksum;
-
-//    qCDebug(dcKaco()) << "Message start:" << byteArrayToHexString(message.left(2)) << responseStart;
-//    qCDebug(dcKaco()) << "Message type:" << byteToHexString(messageType) << static_cast<MessageType>(messageType);
-//    qCDebug(dcKaco()) << "Message size:" << byteArrayToHexString(message.mid(3,2)) << messageSize;
-//    qCDebug(dcKaco()) << "Message checksum:" << calculateChecksum(message.mid(9, message.length() - 9)) << "=" << checksum;
-
-//    // Parse params
-//    // 0400 4878 c7746a43 0400 6778 f8866c43 0400 8678 d3d16a43 0400 bcca 05292844 0400 dbca 87e60d44 0400 5396 bbfc0245 0400 94d8 9a995343 0c00 6afd 80786843801b6b4348ea6a43
-
-//    for (int i = 9; i < message.length(); i = i + 8) {
-//        // 0400 4878 c7746a43 // U L1 - "g_sync.u_l_rms[0]"
-//        // 0400 6778 f8866c43 // U L2 - "g_sync.u_l_rms[1]"
-//        // 0400 8678 d3d16a43 // U L3 - "g_sync.u_l_rms[2]"
-//        // 0400 bcca 05292844 // U Sg1 - g_sync.u_sg_avg[0]
-//        // g_sync.u_sg_avg[1]
-//        // "g_sync.p_pv_lp"
-//        // bms.u_total
-//        // "rs.u_ext" 3 * AC voltag
-//        int paramSize = static_cast<quint16>(message.at(i) & 0xFF) | (message.at(i + 1) & 0xFF) << 8;
-//        int paramHash = static_cast<quint16>(message.at(i + 2) & 0xFF) | (message.at(i + 3) & 0xFF) << 8;
-//        QByteArray paramData = message.mid(i + 4, paramSize);
-//        QDataStream paramStream(&paramData, QIODevice::ReadOnly);
-//        paramStream.setByteOrder(QDataStream::LittleEndian);
-//        quint32 rawValue;
-//        paramStream >> rawValue;
-//        float value = 0;
-//        memcpy(&value, &rawValue, sizeof(quint32));
-//        qCDebug(dcKaco()) << "Param: size:" << paramSize << "hash:" << paramHash << rawValue << value;
-//    }
-
-//}
+    return package;
+}
 
 QString KacoClient::byteToHexString(quint8 byte)
 {
@@ -1098,7 +1021,7 @@ void KacoClient::refresh()
 {
     if (m_requestPending) {
         m_requestPendingTicks++;
-        if (m_requestPendingTicks >= 10) {
+        if (m_requestPendingTicks >= 5) {
             m_requestPendingTicks = 0;
             m_requestPending = false;
             qCWarning(dcKaco()) << "No response received for" << m_state << ". Retry";
@@ -1119,7 +1042,10 @@ void KacoClient::refresh()
     case StateRefreshKey:
         sendPicRequest();
         break;
-    case StateRequestInverter:
+    case StateInitialize:
+        // TODO: get settings and system information, emit authenticated on success
+        break;
+    case StateRefreshData:
         sendInverterRequest();
         break;
     }

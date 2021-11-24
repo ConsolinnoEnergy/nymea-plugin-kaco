@@ -14,14 +14,17 @@ public:
     enum State {
         StateNone,
         StateAuthenticate,
+        StateInitialize,
         StateRefreshKey,
-        StateRequestInverter
+        StateRefreshData
     };
     Q_ENUM(State)
 
     explicit KacoClient(const QHostAddress &hostAddress, quint16 port = 9760, const QString &password = "user", QObject *parent = nullptr);
 
     bool connected() const;
+
+    QString serialNumber() const;
 
     // Meter data
     float meterInverterEnergyReturnedPhaseA() const;
@@ -69,6 +72,10 @@ public slots:
 signals:
     void connectedChanged(bool connected);
     void stateChanged(State state);
+
+    void serialNumberChanged(const QString &serialNumber);
+
+    void valuesUpdated();
 
     // Meter signals
     void meterInverterEnergyReturnedPhaseAChanged(float meterInverterEnergyReturnedPhaseA);
@@ -119,6 +126,7 @@ private:
     QTcpSocket *m_socket = nullptr;
     QHostAddress m_hostAddress;
     quint16 m_port = 9760;
+
     quint8 m_userId = 0;
     QString m_userPassword;
     int m_userPasswordHash = 0;
@@ -134,7 +142,7 @@ private:
     quint8 m_picLowVersion = 0;
     quint8 m_userType = 0;
     QByteArray m_mac;
-    QByteArray m_serialNumber;
+    QString m_serialNumber;
     QByteArray m_picRandomKey;
     quint32 m_clientId = 0;
     uint m_lastPicTimestamp = 0;
@@ -192,19 +200,16 @@ private:
     void setState(State state);
     void resetData();
 
-    // Requests
     bool sendData(const QByteArray &data);
-
-    void sendPicRequest();
-    void sendInverterRequest();
-
-    // Response
     void processResponse(const QByteArray &response);
 
+    void sendPicRequest();
     void processPicResponse(const QByteArray &message);
+
+    void sendInverterRequest();
     void processInverterResponse(const QByteArray &message);
 
-    void processIds(const QByteArray &message);
+    QByteArray buildPackage(MessageType messageType, const QByteArray &payload);
 
     QString byteToHexString(quint8 byte);
     QString byteArrayToHexString(const QByteArray &byteArray);
