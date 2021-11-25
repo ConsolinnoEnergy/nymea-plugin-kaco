@@ -617,7 +617,7 @@ void KacoClient::sendInverterRequest()
 
 void KacoClient::processInverterResponse(const QByteArray &message)
 {
-    qCDebug(dcKaco()) << "Process inverter data...";
+    qCDebug(dcKaco()) << "--> Process inverter data...";
 
     QDataStream stream(message);
     stream.setByteOrder(QDataStream::LittleEndian);
@@ -679,7 +679,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
     while (!stream.atEnd()) {
         // Read the next param size and hash
         stream >> paramSize >> paramHash;
-        qCDebug(dcKaco()) << "Read parameter" << paramHash << "size" << paramSize;
+        qCDebug(dcKaco()) << "--> Read parameter" << paramHash << "size" << paramSize;
 
         // Meter ----------------------------------------
 
