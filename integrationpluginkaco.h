@@ -37,6 +37,7 @@
 #include <plugintimer.h>
 
 #include "kacoclient.h"
+#include "kacodiscovery.h"
 
 class IntegrationPluginKaco : public IntegrationPlugin
 {
@@ -48,6 +49,7 @@ class IntegrationPluginKaco : public IntegrationPlugin
 public:
     explicit IntegrationPluginKaco();
 
+    void init() override;
     void discoverThings(ThingDiscoveryInfo *info) override;
     void setupThing(ThingSetupInfo *info) override;
     void postSetupThing(Thing *thing) override;

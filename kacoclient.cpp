@@ -47,7 +47,7 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
     foreach (const QString &property, m_inverterProperties)
         m_propertyHashes.insert(calculateStringHashCode(property) & 0xffff, property);
 
-    //m_vectisProperties << "rs.p_int";
+    m_vectisProperties << "rs.p_int";
     m_vectisProperties << "rs.p_ext";
     m_vectisProperties << "rs.u_ext";
     m_vectisProperties << "rs.f_ext";
@@ -72,7 +72,7 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
     m_meterProperties << "dd.e_grid_inj";
     m_meterProperties << "dd.e_grid_cons";
     m_meterProperties << "dd.e_compensation";
-    //m_meterProperties << "dd.q_acc";
+    m_meterProperties << "dd.q_acc";
     foreach (const QString &property, m_meterProperties)
         m_propertyHashes.insert(calculateStringHashCode(property) & 0xffff, property);
 
@@ -206,6 +206,21 @@ float KacoClient::meterSelfConsumptionPhaseC() const
     return m_meterSelfConsumptionPhaseC;
 }
 
+float KacoClient::meterAhBatteryPhaseA() const
+{
+    return m_meterAhBatteryPhaseA;
+}
+
+float KacoClient::meterAhBatteryPhaseB() const
+{
+    return m_meterAhBatteryPhaseB;
+}
+
+float KacoClient::meterAhBatteryPhaseC() const
+{
+    return m_meterAhBatteryPhaseC;
+}
+
 float KacoClient::meterVoltagePhaseA() const
 {
     return m_meterVoltagePhaseA;
@@ -234,6 +249,21 @@ float KacoClient::meterPowerPhaseB() const
 float KacoClient::meterPowerPhaseC() const
 {
     return m_meterPowerPhaseC;
+}
+
+float KacoClient::meterPowerInternalPhaseA() const
+{
+    return m_meterPowerInternalPhaseA;
+}
+
+float KacoClient::meterPowerInternalPhaseB() const
+{
+    return m_meterPowerInternalPhaseB;
+}
+
+float KacoClient::meterPowerInternalPhaseC() const
+{
+    return m_meterPowerInternalPhaseC;
 }
 
 float KacoClient::meterFrequency() const
@@ -374,6 +404,20 @@ void KacoClient::resetData()
     m_meterSelfConsumptionPhaseA = 0;
     m_meterSelfConsumptionPhaseB = 0;
     m_meterSelfConsumptionPhaseC = 0;
+    m_meterAhBatteryPhaseA = 0;
+    m_meterAhBatteryPhaseB = 0;
+    m_meterAhBatteryPhaseC = 0;
+
+    m_meterVoltagePhaseA = 0;
+    m_meterVoltagePhaseB = 0;
+    m_meterVoltagePhaseC = 0;
+    m_meterPowerPhaseA = 0;
+    m_meterPowerPhaseB = 0;
+    m_meterPowerPhaseC = 0;
+    m_meterPowerInternalPhaseA = 0;
+    m_meterPowerInternalPhaseB = 0;
+    m_meterPowerInternalPhaseC = 0;
+    m_meterFrequency = 0;
 
     // Inverter information
     m_inverterGridVoltagePhaseA = 0;
@@ -396,7 +440,6 @@ void KacoClient::resetData()
     m_batteryVoltage = 0;
     m_batteryPercentage = 0;
 }
-
 
 bool KacoClient::sendData(const QByteArray &data)
 {
@@ -679,7 +722,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
     while (!stream.atEnd()) {
         // Read the next param size and hash
         stream >> paramSize >> paramHash;
-        qCDebug(dcKaco()) << "--> Read parameter" << paramHash << "size" << paramSize;
+        //qCDebug(dcKaco()) << "--> Read parameter" << paramHash << "size" << paramSize;
 
         // Meter ----------------------------------------
 
@@ -796,7 +839,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // Meter self consumption
             stream >> paramValueRaw;
             float meterSelfConsumptionPhaseA = convertEnergyToFloat(paramValueRaw, 16, 240000.0) / 1000.0;
-            qCDebug(dcKaco()) << "Meter grid consumed phase A" << meterSelfConsumptionPhaseA << "kWh";
+            qCDebug(dcKaco()) << "Meter self consumed phase A" << meterSelfConsumptionPhaseA << "kWh";
             if (!qFuzzyCompare(m_meterSelfConsumptionPhaseA, meterSelfConsumptionPhaseA)) {
                 m_meterSelfConsumptionPhaseA = meterSelfConsumptionPhaseA;
                 emit meterSelfConsumptionPhaseAChanged(m_meterSelfConsumptionPhaseA);
@@ -804,7 +847,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterSelfConsumptionPhaseB = convertEnergyToFloat(paramValueRaw, 16, 7200000.0) / 1000.0;
-            qCDebug(dcKaco()) << "Meter grid consumed phase B" << meterSelfConsumptionPhaseB << "kWh";
+            qCDebug(dcKaco()) << "Meter self consumed phase B" << meterSelfConsumptionPhaseB << "kWh";
             if (!qFuzzyCompare(m_meterSelfConsumptionPhaseB, meterSelfConsumptionPhaseB)) {
                 m_meterSelfConsumptionPhaseB = meterSelfConsumptionPhaseB;
                 emit meterSelfConsumptionPhaseBChanged(m_meterSelfConsumptionPhaseB);
@@ -812,10 +855,37 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterSelfConsumptionPhaseC = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
-            qCDebug(dcKaco()) << "Meter grid consumed phase C" << meterSelfConsumptionPhaseC << "kWh";
+            qCDebug(dcKaco()) << "Meter self consumed phase C" << meterSelfConsumptionPhaseC << "kWh";
             if (!qFuzzyCompare(m_meterSelfConsumptionPhaseC, meterSelfConsumptionPhaseC)) {
                 m_meterSelfConsumptionPhaseC = meterSelfConsumptionPhaseC;
                 emit meterSelfConsumptionPhaseCChanged(m_meterSelfConsumptionPhaseC);
+            }
+
+        } else if (paramHash == m_propertyHashes.key("dd.q_acc")) {
+
+            // Meter AH battery
+            stream >> paramValueRaw;
+            float meterAhBatteryPhaseA = convertEnergyToFloat(paramValueRaw, 16, 600.0);
+            qCDebug(dcKaco()) << "Meter Ah battery phase A" << meterAhBatteryPhaseA << "Ah";
+            if (!qFuzzyCompare(m_meterAhBatteryPhaseA, meterAhBatteryPhaseA)) {
+                m_meterAhBatteryPhaseA = meterAhBatteryPhaseA;
+                emit meterAhBatteryPhaseAChanged(m_meterAhBatteryPhaseA);
+            }
+
+            stream >> paramValueRaw;
+            float meterAhBatteryPhaseB = convertEnergyToFloat(paramValueRaw, 16, 18000.0);
+            qCDebug(dcKaco()) << "Meter Ah battery phase B" << meterAhBatteryPhaseB << "Ah";
+            if (!qFuzzyCompare(m_meterAhBatteryPhaseB, meterAhBatteryPhaseB)) {
+                m_meterAhBatteryPhaseB = meterAhBatteryPhaseB;
+                emit meterAhBatteryPhaseBChanged(m_meterAhBatteryPhaseB);
+            }
+
+            stream >> paramValueRaw;
+            float meterAhBatteryPhaseC = convertEnergyToFloat(paramValueRaw, 32, 219000.0);
+            qCDebug(dcKaco()) << "Meter Ah battery phase B" << meterAhBatteryPhaseC << "Ah";
+            if (!qFuzzyCompare(m_meterAhBatteryPhaseC, meterAhBatteryPhaseC)) {
+                m_meterAhBatteryPhaseC = meterAhBatteryPhaseC;
+                emit meterAhBatteryPhaseCChanged(m_meterAhBatteryPhaseC);
             }
 
 
@@ -1033,6 +1103,32 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             if (!qFuzzyCompare(m_meterPowerPhaseC, meterPowerPhaseC)) {
                 m_meterPowerPhaseC = meterPowerPhaseC;
                 emit meterPowerPhaseAChanged(m_meterPowerPhaseC);
+            }
+
+        } else if (paramHash == m_propertyHashes.key("rs.p_int")) {
+
+            stream >> paramValueRaw;
+            float meterPowerInternalPhaseA = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Meter power internal phase A" << meterPowerInternalPhaseA << "W";
+            if (!qFuzzyCompare(m_meterPowerInternalPhaseA, meterPowerInternalPhaseA)) {
+                m_meterPowerInternalPhaseA = meterPowerInternalPhaseA;
+                emit meterPowerInternalPhaseAChanged(m_meterPowerInternalPhaseA);
+            }
+
+            stream >> paramValueRaw;
+            float meterPowerInternalPhaseB = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Meter power internal phase B" << meterPowerInternalPhaseB << "W";
+            if (!qFuzzyCompare(m_meterPowerInternalPhaseB, meterPowerInternalPhaseB)) {
+                m_meterPowerInternalPhaseB = meterPowerInternalPhaseB;
+                emit meterPowerInternalPhaseBChanged(m_meterPowerInternalPhaseB);
+            }
+
+            stream >> paramValueRaw;
+            float meterPowerInternalPhaseC = convertRawValueToFloat(paramValueRaw);
+            qCDebug(dcKaco()) << "Meter power internal phase C" << meterPowerInternalPhaseC << "W";
+            if (!qFuzzyCompare(m_meterPowerInternalPhaseC, meterPowerInternalPhaseC)) {
+                m_meterPowerInternalPhaseC = meterPowerInternalPhaseC;
+                emit meterPowerInternalPhaseAChanged(m_meterPowerInternalPhaseC);
             }
 
         } else if (paramHash == m_propertyHashes.key("rs.u_ext")) {

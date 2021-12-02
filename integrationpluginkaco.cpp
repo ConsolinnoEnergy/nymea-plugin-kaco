@@ -39,55 +39,42 @@ IntegrationPluginKaco::IntegrationPluginKaco()
     //KacoClient client(QHostAddress::LocalHost, 9760, "%lisala99");
 }
 
+void IntegrationPluginKaco::init()
+{
+
+}
+
 void IntegrationPluginKaco::discoverThings(ThingDiscoveryInfo *info)
 {
-    if (!hardwareManager()->networkDeviceDiscovery()->available()) {
-        qCWarning(dcKaco()) << "Failed to discover network devices. The network device discovery is not available.";
-        info->finish(Thing::ThingErrorHardwareNotAvailable, QT_TR_NOOP("Unable to discovery devices in your network."));
-        return;
-    }
-
-    qCDebug(dcKaco()) << "Starting network discovery...";
-    NetworkDeviceDiscoveryReply *discoveryReply = hardwareManager()->networkDeviceDiscovery()->discover();
-    connect(discoveryReply, &NetworkDeviceDiscoveryReply::finished, this, [=](){
-        ThingDescriptors descriptors;
-        qCDebug(dcKaco()) << "Discovery finished. Found" << discoveryReply->networkDeviceInfos().count() << "devices";
-        foreach (const NetworkDeviceInfo &networkDeviceInfo, discoveryReply->networkDeviceInfos()) {
-            qCDebug(dcKaco()) << networkDeviceInfo;
-            if (networkDeviceInfo.macAddress().isNull())
-                continue;
-
-            QString title;
-            if (networkDeviceInfo.hostName().isEmpty()) {
-                title += networkDeviceInfo.address().toString();
-            } else {
-                title += networkDeviceInfo.address().toString() + " (" + networkDeviceInfo.hostName() + ")";
-            }
-
-            QString description;
-            if (networkDeviceInfo.macAddressManufacturer().isEmpty()) {
-                description = networkDeviceInfo.macAddress();
-            } else {
-                description = networkDeviceInfo.macAddress() + " (" + networkDeviceInfo.macAddressManufacturer() + ")";
-            }
-
+    KacoDiscovery *discovery = new KacoDiscovery(this);
+    connect(discovery, &KacoDiscovery::discoveryFinished, this, [=](){
+        qCDebug(dcKaco()) << "Discovery finished. Found" << discovery->result().count() << "inverters.";
+        foreach (const KacoDiscovery::KacoDicoveryResult &result, discovery->result()) {
+            QString title = "Kaco Inverter";
+            QString description = "Serial: " + result.serialNumber + " (" + result.hostAddress.toString() + ")";
             ThingDescriptor descriptor(inverterThingClassId, title, description);
 
             // Check if we already have set up this device
-            Things existingThings = myThings().filterByParam(inverterThingMacAddressParamTypeId, networkDeviceInfo.macAddress());
+            Things existingThings = myThings().filterByParam(inverterThingSerialNumberParamTypeId, result.serialNumber);
             if (existingThings.count() == 1) {
-                qCDebug(dcKaco()) << "This thing already exists in the system." << existingThings.first() << networkDeviceInfo;
+                qCDebug(dcKaco()) << "This thing already exists in the system." << existingThings.first() << result.serialNumber;
                 descriptor.setThingId(existingThings.first()->id());
             }
 
             ParamList params;
-            params << Param(inverterThingHostAddressParamTypeId, networkDeviceInfo.address().toString());
-            params << Param(inverterThingMacAddressParamTypeId, networkDeviceInfo.macAddress());
+            params << Param(inverterThingHostAddressParamTypeId, result.hostAddress.toString());
+            params << Param(inverterThingPortParamTypeId, result.servicePort);
+            params << Param(inverterThingMacAddressParamTypeId, result.mac);
+            params << Param(inverterThingSerialNumberParamTypeId, result.serialNumber);
             descriptor.setParams(params);
             info->addThingDescriptor(descriptor);
         }
+
         info->finish(Thing::ThingErrorNoError);
+        discovery->deleteLater();
     });
+
+    discovery->startDiscovery();
 }
 
 void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
@@ -102,8 +89,8 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
         }
 
         QHostAddress hostAddress = QHostAddress(thing->paramValue(inverterThingHostAddressParamTypeId).toString());
-        QString password = thing->paramValue(inverterThingPasswordParamTypeId).toString();
-        KacoClient *client = new KacoClient(hostAddress, 9760, password, this);
+        quint16 port = thing->paramValue(inverterThingPortParamTypeId).toUInt();
+        KacoClient *client = new KacoClient(hostAddress, port, "user", this);
         connect(client, &KacoClient::connectedChanged, thing, [=](bool connected){
             qCDebug(dcKaco()) << thing << "connected changed" << connected;
             thing->setStateValue(inverterConnectedStateTypeId, connected);
@@ -114,7 +101,6 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
             foreach (Thing *thing, myThings().filterByParentId(thing->id())) {
                 thing->setStateValue("connected", connected);
             }
-
         });
 
         connect(client, &KacoClient::inverterPvPowerChanged, thing, [=](float inverterPvPower){
@@ -165,6 +151,29 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
             thing->setStateValue(inverterResistanceIsolationStateTypeId, inverterResistanceIsolation);
         });
 
+        // Energy
+        connect(client, &KacoClient::valuesUpdated, thing, [=](){
+            // Energy
+            double energyProduced = client->meterInverterEnergyReturnedPhaseA() + client->meterInverterEnergyReturnedPhaseB() + client->meterInverterEnergyReturnedPhaseC();
+            qCDebug(dcKaco()) << "Invertr energy produced" << energyProduced << "kWh";
+            thing->setStateValue(inverterTotalEnergyProducedStateTypeId, energyProduced);
+
+            thing->setStateValue(inverterFeedBatteryTodayStateTypeId, client->meterAhBatteryPhaseA() * client->batteryVoltage() / 1000.0);
+            thing->setStateValue(inverterFeedBatteryMonthStateTypeId, client->meterAhBatteryPhaseB() * client->batteryVoltage() / 1000.0);
+            thing->setStateValue(inverterFeedBatteryTotalStateTypeId, client->meterAhBatteryPhaseC() * client->batteryVoltage() / 1000.0);
+
+            // Available energy
+            // Sum Ah of battery * battery voltage
+//            float totalBatteryAh = client->meterAhBatteryPhaseA() + client->meterAhBatteryPhaseB() + client->meterAhBatteryPhaseC();
+//            float totalEnergy = totalBatteryAh * client->batteryVoltage();
+
+//            qCDebug(dcKaco()) << "Battery total" << totalBatteryAh << "Ah";
+//            qCDebug(dcKaco()) << "Battery total energy" << totalEnergy  << "Wh" << totalEnergy / 1000.0 << "kWh";
+//            thing->setStateValue(batteryCapacityStateTypeId, totalEnergy / 1000.0);
+
+
+        });
+
         m_clients.insert(thing, client);
         client->connectToDevice();
 
@@ -183,14 +192,34 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
 
         // Since we need to summ up stuff, lets react on the valuesChanged signal
         connect(client, &KacoClient::valuesUpdated, thing, [=](){
-            thing->setStateValue(meterCurrentPowerPhaseAStateTypeId, client->meterPowerPhaseA());
-            thing->setStateValue(meterCurrentPowerPhaseBStateTypeId, client->meterPowerPhaseB());
-            thing->setStateValue(meterCurrentPowerPhaseCStateTypeId, client->meterPowerPhaseC());
-            thing->setStateValue(meterCurrentPowerStateTypeId, client->meterPowerPhaseA() + client->meterPowerPhaseB() + client->meterPowerPhaseC());
+            // We received data, we are connected
+            thing->setStateValue(meterConnectedStateTypeId, true);
+
+            thing->setStateValue(meterCurrentPowerPhaseAStateTypeId, client->meterPowerInternalPhaseA());
+            thing->setStateValue(meterCurrentPowerPhaseBStateTypeId, client->meterPowerInternalPhaseB());
+            thing->setStateValue(meterCurrentPowerPhaseCStateTypeId, client->meterPowerInternalPhaseC());
+            thing->setStateValue(meterCurrentPowerStateTypeId, client->meterPowerInternalPhaseA() + client->meterPowerInternalPhaseB() + client->meterPowerInternalPhaseC());
             thing->setStateValue(meterVoltagePhaseAStateTypeId, client->meterVoltagePhaseA());
             thing->setStateValue(meterVoltagePhaseBStateTypeId, client->meterVoltagePhaseB());
             thing->setStateValue(meterVoltagePhaseCStateTypeId, client->meterVoltagePhaseC());
             thing->setStateValue(meterFrequencyStateTypeId, client->meterFrequency());
+
+            // Calculate the current
+            double currentPowerPhaseA = client->meterPowerInternalPhaseA() / client->meterVoltagePhaseA();
+            double currentPowerPhaseB = client->meterPowerInternalPhaseB() / client->meterVoltagePhaseB();
+            double currentPowerPhaseC = client->meterPowerInternalPhaseC() / client->meterVoltagePhaseC();
+            thing->setStateValue(meterCurrentPhaseAStateTypeId, currentPowerPhaseA);
+            thing->setStateValue(meterCurrentPhaseBStateTypeId, currentPowerPhaseB);
+            thing->setStateValue(meterCurrentPhaseCStateTypeId, currentPowerPhaseC);
+
+            // Energy
+            double energyConsumed = client->meterGridEnergyConsumedPhaseA() + client->meterGridEnergyConsumedPhaseB() + client->meterGridEnergyConsumedPhaseC();
+            qCDebug(dcKaco()) << "Meter energy consumed" << energyConsumed << "kWh";
+            thing->setStateValue(meterTotalEnergyConsumedStateTypeId, energyConsumed);
+
+            double energyProduced = client->meterGridEnergyReturnedPhaseA() + client->meterGridEnergyReturnedPhaseB() + client->meterGridEnergyReturnedPhaseC();
+            qCDebug(dcKaco()) << "Meter energy returned" << energyProduced << "kWh";
+            thing->setStateValue(meterTotalEnergyProducedStateTypeId, energyProduced);
 
         });
 
@@ -205,16 +234,16 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
             return;
         }
 
-        // Set the initial connected state
-        thing->setStateValue(batteryConnectedStateTypeId, client->connected());
+        connect(client, &KacoClient::valuesUpdated, thing, [=](){
+            // We received data, we are connected
+            thing->setStateValue(batteryConnectedStateTypeId, true);
 
-        connect(client, &KacoClient::batteryPercentageChanged, thing, [=](float percentage){
-            thing->setStateValue(batteryBatteryLevelStateTypeId, percentage);
-            thing->setStateValue(batteryBatteryCriticalStateTypeId, percentage <= 10);
-        });
+            thing->setStateValue(batteryBatteryLevelStateTypeId, client->batteryPercentage());
+            thing->setStateValue(batteryBatteryCriticalStateTypeId, client->batteryPercentage() <= 10);
 
-        connect(client, &KacoClient::batteryPowerChanged, thing, [=](float currentPower){
-            float power = currentPower;
+            // Capacity is still unknown, Lum might be the solution
+
+            float power = client->batteryPower();
             thing->setStateValue(batteryCurrentPowerStateTypeId, power);
             if (power > 0) {
                 thing->setStateValue(batteryChargingStateStateTypeId, "charging");
@@ -249,6 +278,20 @@ void IntegrationPluginKaco::postSetupThing(Thing *thing)
 
         if (!descriptors.isEmpty()) {
             emit autoThingsAppeared(descriptors);
+        }
+    } else if (thing->thingClassId() == meterThingClassId) {
+        KacoClient *client = m_clients.value(myThings().findById(thing->parentId()));
+        if (client) {
+            // Set the initial connected state
+            thing->setStateValue(meterConnectedStateTypeId, client->connected());
+            return;
+        }
+    } else if (thing->thingClassId() == batteryThingClassId) {
+        KacoClient *client = m_clients.value(myThings().findById(thing->parentId()));
+        if (client) {
+            // Set the initial connected state
+            thing->setStateValue(batteryConnectedStateTypeId, client->connected());
+            return;
         }
     }
 }

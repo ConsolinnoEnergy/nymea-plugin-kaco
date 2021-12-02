@@ -25,27 +25,28 @@
                             "defaultValue":"0.0.0.0"
                         },
                         {
+                            "id": "ebe2036a-d0e3-4c60-ac03-07c851231859",
+                            "name":"port",
+                            "displayName": "Service port",
+                            "type": "uint",
+                            "defaultValue": 9760
+                        },
+                        {
                             "id": "b6013e67-39d1-4154-906b-88ee5c779463",
                             "name": "macAddress",
                             "displayName": "MAC address",
                             "type": "QString",
                             "inputType": "TextLine",
-                            "defaultValue":"00:00:00:00:00:00"
+                            "defaultValue":"00:00:00:00:00:00",
+                            "readOnly": true
                         },
                         {
                             "id": "34a35edc-9fea-4ea3-87e2-f55c17c09cf7",
                             "name":"serialNumber",
                             "displayName": "Serial number",
                             "type": "QString",
-                            "defaultValue": ""
-                        },
-                        {
-                            "id": "71124543-468e-4699-9d10-ab6cdb7e09c0",
-                            "name":"password",
-                            "displayName": "Password",
-                            "type": "QString",
-                            "inputType": "Password",
-                            "defaultValue": "user"
+                            "defaultValue": "",
+                            "readOnly": true
                         }
                     ],
                     "stateTypes": [
@@ -159,6 +160,33 @@
                             "displayNameEvent": "Frequency changed",
                             "type": "double",
                             "unit": "Hertz",
+                            "defaultValue": 0.00
+                        },
+                        {
+                            "id": "114e9f01-2cbc-4e89-af12-500419a90adb",
+                            "name": "feedBatteryToday",
+                            "displayName": "Energy feed to battery today",
+                            "displayNameEvent": "Energy feed to battery today changed",
+                            "type": "double",
+                            "unit": "KiloWattHour",
+                            "defaultValue": 0.00
+                        },
+                        {
+                            "id": "12e75719-f306-4c85-a094-272a5ab69f37",
+                            "name": "feedBatteryMonth",
+                            "displayName": "Energy feed to battery this month",
+                            "displayNameEvent": "Energy feed to battery this month changed",
+                            "type": "double",
+                            "unit": "KiloWattHour",
+                            "defaultValue": 0.00
+                        },
+                        {
+                            "id": "8414a918-bb53-49ab-99e4-42ab0c1a12fa",
+                            "name": "feedBatteryTotal",
+                            "displayName": "Energy feed to battery total",
+                            "displayNameEvent": "Energy feed to battery total changed",
+                            "type": "double",
+                            "unit": "KiloWattHour",
                             "defaultValue": 0.00
                         },
                         {
@@ -378,8 +406,8 @@
                         {
                             "id": "247181e9-4f15-437f-bb63-f0950153489c",
                             "name": "capacity",
-                            "displayName": "Available energy",
-                            "displayNameEvent": "Available energy changed",
+                            "displayName": "Capacity",
+                            "displayNameEvent": "Capacity changed",
                             "type": "double",
                             "unit": "KiloWattHour",
                             "defaultValue": 0.00

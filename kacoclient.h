@@ -42,12 +42,18 @@ public:
     float meterSelfConsumptionPhaseA() const;
     float meterSelfConsumptionPhaseB() const;
     float meterSelfConsumptionPhaseC() const;
+    float meterAhBatteryPhaseA() const;
+    float meterAhBatteryPhaseB() const;
+    float meterAhBatteryPhaseC() const;
     float meterVoltagePhaseA() const;
     float meterVoltagePhaseB() const;
     float meterVoltagePhaseC() const;
     float meterPowerPhaseA() const;
     float meterPowerPhaseB() const;
     float meterPowerPhaseC() const;
+    float meterPowerInternalPhaseA() const;
+    float meterPowerInternalPhaseB() const;
+    float meterPowerInternalPhaseC() const;
     float meterFrequency() const;
 
     // Inverter data
@@ -99,12 +105,18 @@ signals:
     void meterSelfConsumptionPhaseAChanged(float meterSelfConsumptionPhaseA);
     void meterSelfConsumptionPhaseBChanged(float meterSelfConsumptionPhaseB);
     void meterSelfConsumptionPhaseCChanged(float meterSelfConsumptionPhaseC);
+    void meterAhBatteryPhaseAChanged(float meterAhBatteryPhaseA);
+    void meterAhBatteryPhaseBChanged(float meterAhBatteryPhaseB);
+    void meterAhBatteryPhaseCChanged(float meterAhBatteryPhaseC);
     void meterVoltagePhaseAChanged(float meterVoltagePhaseA);
     void meterVoltagePhaseBChanged(float meterVoltagePhaseB);
     void meterVoltagePhaseCChanged(float meterVoltagePhaseC);
     void meterPowerPhaseAChanged(float meterPowerPhaseA);
     void meterPowerPhaseBChanged(float meterPowerPhaseB);
     void meterPowerPhaseCChanged(float meterPowerPhaseC);
+    void meterPowerInternalPhaseAChanged(float meterPowerInternalPhaseA);
+    void meterPowerInternalPhaseBChanged(float meterPowerInternalPhaseB);
+    void meterPowerInternalPhaseCChanged(float meterPowerInternalPhaseC);
     void meterFrequencyChanged(float meterFrequency);
 
     // Inverter signals
@@ -188,6 +200,9 @@ private:
     float m_meterSelfConsumptionPhaseA = 0;
     float m_meterSelfConsumptionPhaseB = 0;
     float m_meterSelfConsumptionPhaseC = 0;
+    float m_meterAhBatteryPhaseA = 0;
+    float m_meterAhBatteryPhaseB = 0;
+    float m_meterAhBatteryPhaseC = 0;
 
     // Vectis information
     float m_meterVoltagePhaseA = 0;
@@ -196,6 +211,9 @@ private:
     float m_meterPowerPhaseA = 0;
     float m_meterPowerPhaseB = 0;
     float m_meterPowerPhaseC = 0;
+    float m_meterPowerInternalPhaseA = 0;
+    float m_meterPowerInternalPhaseB = 0;
+    float m_meterPowerInternalPhaseC = 0;
     float m_meterFrequency = 0;
 
     // Inverter information
