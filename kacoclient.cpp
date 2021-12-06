@@ -131,94 +131,94 @@ QString KacoClient::serialNumber() const
     return m_serialNumber;
 }
 
-float KacoClient::meterInverterEnergyReturnedPhaseA() const
+float KacoClient::meterInverterEnergyReturnedToday() const
 {
-    return m_meterInverterEnergyReturnedPhaseA;
+    return m_meterInverterEnergyReturnedToday;
 }
 
-float KacoClient::meterInverterEnergyReturnedPhaseB() const
+float KacoClient::meterInverterEnergyReturnedMonth() const
 {
-    return m_meterInverterEnergyReturnedPhaseB;
+    return m_meterInverterEnergyReturnedMonth;
 }
 
-float KacoClient::meterInverterEnergyReturnedPhaseC() const
+float KacoClient::meterInverterEnergyReturnedTotal() const
 {
-    return m_meterInverterEnergyReturnedPhaseC;
+    return m_meterInverterEnergyReturnedTotal;
 }
 
-float KacoClient::meterInverterEnergyConsumedPhaseA() const
+float KacoClient::meterInverterEnergyConsumedToday() const
 {
-    return m_meterInverterEnergyConsumedPhaseA;
+    return m_meterInverterEnergyConsumedToday;
 }
 
-float KacoClient::meterInverterEnergyConsumedPhaseB() const
+float KacoClient::meterInverterEnergyConsumedMonth() const
 {
-    return m_meterInverterEnergyConsumedPhaseB;
+    return m_meterInverterEnergyConsumedMonth;
 }
 
-float KacoClient::meterInverterEnergyConsumedPhaseC() const
+float KacoClient::meterInverterEnergyConsumedTotal() const
 {
-    return m_meterInverterEnergyConsumedPhaseC;
+    return m_meterInverterEnergyConsumedTotal;
 }
 
-float KacoClient::meterGridEnergyReturnedPhaseA() const
+float KacoClient::meterGridEnergyReturnedToday() const
 {
-    return m_meterGridEnergyReturnedPhaseA;
+    return m_meterGridEnergyReturnedToday;
 }
 
-float KacoClient::meterGridEnergyReturnedPhaseB() const
+float KacoClient::meterGridEnergyReturnedMonth() const
 {
-    return m_meterGridEnergyReturnedPhaseB;
+    return m_meterGridEnergyReturnedMonth;
 }
 
-float KacoClient::meterGridEnergyReturnedPhaseC() const
+float KacoClient::meterGridEnergyReturnedTotal() const
 {
-    return m_meterGridEnergyReturnedPhaseC;
+    return m_meterGridEnergyReturnedTotal;
 }
 
-float KacoClient::meterGridEnergyConsumedPhaseA() const
+float KacoClient::meterGridEnergyConsumedToday() const
 {
-    return m_meterGridEnergyConsumedPhaseA;
+    return m_meterGridEnergyConsumedToday;
 }
 
-float KacoClient::meterGridEnergyConsumedPhaseB() const
+float KacoClient::meterGridEnergyConsumedMonth() const
 {
-    return m_meterGridEnergyConsumedPhaseB;
+    return m_meterGridEnergyConsumedMonth;
 }
 
-float KacoClient::meterGridEnergyConsumedPhaseC() const
+float KacoClient::meterGridEnergyConsumedTotal() const
 {
-    return m_meterGridEnergyConsumedPhaseC;
+    return m_meterGridEnergyConsumedTotal;
 }
 
-float KacoClient::meterSelfConsumptionPhaseA() const
+float KacoClient::meterSelfConsumptionDay() const
 {
-    return m_meterSelfConsumptionPhaseA;
+    return m_meterSelfConsumptionDay;
 }
 
-float KacoClient::meterSelfConsumptionPhaseB() const
+float KacoClient::meterSelfConsumptionMonth() const
 {
-    return m_meterSelfConsumptionPhaseB;
+    return m_meterSelfConsumptionMonth;
 }
 
-float KacoClient::meterSelfConsumptionPhaseC() const
+float KacoClient::meterSelfConsumptionTotal() const
 {
-    return m_meterSelfConsumptionPhaseC;
+    return m_meterSelfConsumptionTotal;
 }
 
-float KacoClient::meterAhBatteryPhaseA() const
+float KacoClient::meterAhBatteryToday() const
 {
-    return m_meterAhBatteryPhaseA;
+    return m_meterAhBatteryToday;
 }
 
-float KacoClient::meterAhBatteryPhaseB() const
+float KacoClient::meterAhBatteryMonth() const
 {
-    return m_meterAhBatteryPhaseB;
+    return m_meterAhBatteryMonth;
 }
 
-float KacoClient::meterAhBatteryPhaseC() const
+float KacoClient::meterAhBatteryTotal() const
 {
-    return m_meterAhBatteryPhaseC;
+    return m_meterAhBatteryTotal;
 }
 
 float KacoClient::meterVoltagePhaseA() const
@@ -389,24 +389,24 @@ void KacoClient::resetData()
     // Properties
 
     // Meter information
-    m_meterInverterEnergyReturnedPhaseA = 0;
-    m_meterInverterEnergyReturnedPhaseB = 0;
-    m_meterInverterEnergyReturnedPhaseC = 0;
-    m_meterInverterEnergyConsumedPhaseA = 0;
-    m_meterInverterEnergyConsumedPhaseB = 0;
-    m_meterInverterEnergyConsumedPhaseC = 0;
-    m_meterGridEnergyReturnedPhaseA = 0;
-    m_meterGridEnergyReturnedPhaseB = 0;
-    m_meterGridEnergyReturnedPhaseC = 0;
-    m_meterGridEnergyConsumedPhaseA = 0;
-    m_meterGridEnergyConsumedPhaseB = 0;
-    m_meterGridEnergyConsumedPhaseC = 0;
-    m_meterSelfConsumptionPhaseA = 0;
-    m_meterSelfConsumptionPhaseB = 0;
-    m_meterSelfConsumptionPhaseC = 0;
-    m_meterAhBatteryPhaseA = 0;
-    m_meterAhBatteryPhaseB = 0;
-    m_meterAhBatteryPhaseC = 0;
+    m_meterInverterEnergyReturnedToday = 0;
+    m_meterInverterEnergyReturnedMonth = 0;
+    m_meterInverterEnergyReturnedTotal = 0;
+    m_meterInverterEnergyConsumedToday = 0;
+    m_meterInverterEnergyConsumedMonth = 0;
+    m_meterInverterEnergyConsumedTotal = 0;
+    m_meterGridEnergyReturnedToday = 0;
+    m_meterGridEnergyReturnedMonth = 0;
+    m_meterGridEnergyReturnedTotal = 0;
+    m_meterGridEnergyConsumedToday = 0;
+    m_meterGridEnergyConsumedMonth = 0;
+    m_meterGridEnergyConsumedTotal = 0;
+    m_meterSelfConsumptionDay = 0;
+    m_meterSelfConsumptionMonth = 0;
+    m_meterSelfConsumptionTotal = 0;
+    m_meterAhBatteryToday = 0;
+    m_meterAhBatteryMonth = 0;
+    m_meterAhBatteryTotal = 0;
 
     m_meterVoltagePhaseA = 0;
     m_meterVoltagePhaseB = 0;
@@ -730,162 +730,162 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             // Meter feed in inverter
             stream >> paramValueRaw;
-            float meterInverterEnergyReturnedPhaseA = convertEnergyToFloat(paramValueRaw, 16, 240000.0) / 1000.0;
-            qCDebug(dcKaco()) << "Meter inverter feed in phase A" << meterInverterEnergyReturnedPhaseA << "kWh";
-            if (!qFuzzyCompare(m_meterInverterEnergyReturnedPhaseA, meterInverterEnergyReturnedPhaseA)) {
-                m_meterInverterEnergyReturnedPhaseA = meterInverterEnergyReturnedPhaseA;
-                emit meterInverterEnergyReturnedPhaseAChanged(m_meterInverterEnergyReturnedPhaseA);
+            float meterInverterEnergyReturnedToday = convertEnergyToFloat(paramValueRaw, 16, 240000.0) / 1000.0;
+            qCDebug(dcKaco()) << "Meter inverter feed in today" << meterInverterEnergyReturnedToday << "kWh";
+            if (!qFuzzyCompare(m_meterInverterEnergyReturnedToday, meterInverterEnergyReturnedToday)) {
+                m_meterInverterEnergyReturnedToday = meterInverterEnergyReturnedToday;
+                emit meterInverterEnergyReturnedTodayChanged(m_meterInverterEnergyReturnedToday);
             }
 
             stream >> paramValueRaw;
-            float meterInverterEnergyReturnedPhaseB = convertEnergyToFloat(paramValueRaw, 16, 7200000.0) / 1000.0;
-            qCDebug(dcKaco()) << "Meter inverter feed in phase B" << meterInverterEnergyReturnedPhaseB << "kWh";
-            if (!qFuzzyCompare(m_meterInverterEnergyReturnedPhaseB, meterInverterEnergyReturnedPhaseB)) {
-                m_meterInverterEnergyReturnedPhaseB = meterInverterEnergyReturnedPhaseB;
-                emit meterInverterEnergyReturnedPhaseBChanged(m_meterInverterEnergyReturnedPhaseB);
+            float meterInverterEnergyReturnedMonth = convertEnergyToFloat(paramValueRaw, 16, 7200000.0) / 1000.0;
+            qCDebug(dcKaco()) << "Meter inverter feed in this month" << meterInverterEnergyReturnedMonth << "kWh";
+            if (!qFuzzyCompare(m_meterInverterEnergyReturnedMonth, meterInverterEnergyReturnedMonth)) {
+                m_meterInverterEnergyReturnedMonth = meterInverterEnergyReturnedMonth;
+                emit meterInverterEnergyReturnedMonthChanged(m_meterInverterEnergyReturnedMonth);
             }
 
             stream >> paramValueRaw;
-            float meterInverterEnergyReturnedPhaseC = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
-            qCDebug(dcKaco()) << "Meter inverter feed in phase C" << meterInverterEnergyReturnedPhaseC << "kWh";
-            if (!qFuzzyCompare(m_meterInverterEnergyReturnedPhaseC, meterInverterEnergyReturnedPhaseC)) {
-                m_meterInverterEnergyReturnedPhaseC = meterInverterEnergyReturnedPhaseC;
-                emit meterInverterEnergyReturnedPhaseCChanged(m_meterInverterEnergyReturnedPhaseC);
+            float meterInverterEnergyReturnedTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
+            qCDebug(dcKaco()) << "Meter inverter feed in total" << meterInverterEnergyReturnedTotal << "kWh";
+            if (!qFuzzyCompare(m_meterInverterEnergyReturnedTotal, meterInverterEnergyReturnedTotal)) {
+                m_meterInverterEnergyReturnedTotal = meterInverterEnergyReturnedTotal;
+                emit meterInverterEnergyReturnedTotalChanged(m_meterInverterEnergyReturnedTotal);
             }
 
         } else if (paramHash == m_propertyHashes.key("dd.e_inverter_cons")) {
 
             // Meter consumed inverter
             stream >> paramValueRaw;
-            float meterInverterEnergyConsumedPhaseA = convertEnergyToFloat(paramValueRaw, 16, 240000.0)/ 1000.0;
-            qCDebug(dcKaco()) << "Meter inverter consumed phase A" << meterInverterEnergyConsumedPhaseA << "kWh";
-            if (!qFuzzyCompare(m_meterInverterEnergyConsumedPhaseA, meterInverterEnergyConsumedPhaseA)) {
-                m_meterInverterEnergyConsumedPhaseA = meterInverterEnergyConsumedPhaseA;
-                emit meterInverterEnergyConsumedPhaseAChanged(m_meterInverterEnergyConsumedPhaseA);
+            float meterInverterEnergyConsumedToday = convertEnergyToFloat(paramValueRaw, 16, 240000.0)/ 1000.0;
+            qCDebug(dcKaco()) << "Meter inverter consumed today" << meterInverterEnergyConsumedToday << "kWh";
+            if (!qFuzzyCompare(m_meterInverterEnergyConsumedToday, meterInverterEnergyConsumedToday)) {
+                m_meterInverterEnergyConsumedToday = meterInverterEnergyConsumedToday;
+                emit meterInverterEnergyConsumedTodayChanged(m_meterInverterEnergyConsumedToday);
             }
 
             stream >> paramValueRaw;
-            float meterInverterEnergyConsumedPhaseB = convertEnergyToFloat(paramValueRaw, 16, 7200000.0) / 1000.0;
-            qCDebug(dcKaco()) << "Meter inverter consumed phase B" << meterInverterEnergyConsumedPhaseB << "kWh";
-            if (!qFuzzyCompare(m_meterInverterEnergyConsumedPhaseB, meterInverterEnergyConsumedPhaseB)) {
-                m_meterInverterEnergyConsumedPhaseB = meterInverterEnergyConsumedPhaseB;
-                emit meterInverterEnergyConsumedPhaseBChanged(m_meterInverterEnergyConsumedPhaseB);
+            float meterInverterEnergyConsumedMonth = convertEnergyToFloat(paramValueRaw, 16, 7200000.0) / 1000.0;
+            qCDebug(dcKaco()) << "Meter inverter consumed this month" << meterInverterEnergyConsumedMonth << "kWh";
+            if (!qFuzzyCompare(m_meterInverterEnergyConsumedMonth, meterInverterEnergyConsumedMonth)) {
+                m_meterInverterEnergyConsumedMonth = meterInverterEnergyConsumedMonth;
+                emit meterInverterEnergyConsumedMonthChanged(m_meterInverterEnergyConsumedMonth);
             }
 
             stream >> paramValueRaw;
-            float meterInverterEnergyConsumedPhaseC = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
-            qCDebug(dcKaco()) << "Meter inverter consumed phase C" << meterInverterEnergyConsumedPhaseC << "kWh";
-            if (!qFuzzyCompare(m_meterInverterEnergyConsumedPhaseC, meterInverterEnergyConsumedPhaseC)) {
-                m_meterInverterEnergyConsumedPhaseC = meterInverterEnergyConsumedPhaseC;
-                emit meterInverterEnergyConsumedPhaseCChanged(m_meterInverterEnergyConsumedPhaseC);
+            float meterInverterEnergyConsumedTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
+            qCDebug(dcKaco()) << "Meter inverter consumed total" << meterInverterEnergyConsumedTotal << "kWh";
+            if (!qFuzzyCompare(m_meterInverterEnergyConsumedTotal, meterInverterEnergyConsumedTotal)) {
+                m_meterInverterEnergyConsumedTotal = meterInverterEnergyConsumedTotal;
+                emit meterInverterEnergyConsumedTotalChanged(m_meterInverterEnergyConsumedTotal);
             }
 
         } else if (paramHash == m_propertyHashes.key("dd.e_grid_inj")) {
 
             // Meter grid feed in
             stream >> paramValueRaw;
-            float meterGridEnergyReturnedPhaseA = convertEnergyToFloat(paramValueRaw, 16, 2400000.0) / 1000.0;
-            qCDebug(dcKaco()) << "Meter grid feed in phase A" << meterGridEnergyReturnedPhaseA << "kWh";
-            if (!qFuzzyCompare(m_meterGridEnergyReturnedPhaseA, meterGridEnergyReturnedPhaseA)) {
-                m_meterGridEnergyReturnedPhaseA = meterGridEnergyReturnedPhaseA;
-                emit meterGridEnergyReturnedPhaseAChanged(m_meterGridEnergyReturnedPhaseA);
+            float meterGridEnergyReturnedToday = convertEnergyToFloat(paramValueRaw, 16, 2400000.0) / 1000.0;
+            qCDebug(dcKaco()) << "Meter grid feed in today" << meterGridEnergyReturnedToday << "kWh";
+            if (!qFuzzyCompare(m_meterGridEnergyReturnedToday, meterGridEnergyReturnedToday)) {
+                m_meterGridEnergyReturnedToday = meterGridEnergyReturnedToday;
+                emit meterGridEnergyReturnedTodayChanged(m_meterGridEnergyReturnedToday);
             }
 
             stream >> paramValueRaw;
-            float meterGridEnergyReturnedPhaseB = convertEnergyToFloat(paramValueRaw, 16, 7.2E7) / 1000.0;
-            qCDebug(dcKaco()) << "Meter grid feed in phase B" << meterGridEnergyReturnedPhaseB << "kWh";
-            if (!qFuzzyCompare(m_meterGridEnergyReturnedPhaseB, meterGridEnergyReturnedPhaseB)) {
-                m_meterGridEnergyReturnedPhaseB = meterGridEnergyReturnedPhaseB;
-                emit meterGridEnergyReturnedPhaseBChanged(m_meterGridEnergyReturnedPhaseB);
+            float meterGridEnergyReturnedMonth = convertEnergyToFloat(paramValueRaw, 16, 7.2E7) / 1000.0;
+            qCDebug(dcKaco()) << "Meter grid feed in this month" << meterGridEnergyReturnedMonth << "kWh";
+            if (!qFuzzyCompare(m_meterGridEnergyReturnedMonth, meterGridEnergyReturnedMonth)) {
+                m_meterGridEnergyReturnedMonth = meterGridEnergyReturnedMonth;
+                emit meterGridEnergyReturnedMonthChanged(m_meterGridEnergyReturnedMonth);
             }
 
             stream >> paramValueRaw;
-            float meterGridEnergyReturnedPhaseC = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
-            qCDebug(dcKaco()) << "Meter grid feed in phase C" << meterGridEnergyReturnedPhaseC << "kWh";
-            if (!qFuzzyCompare(m_meterGridEnergyReturnedPhaseC, meterGridEnergyReturnedPhaseC)) {
-                m_meterGridEnergyReturnedPhaseC = meterGridEnergyReturnedPhaseC;
-                emit meterGridEnergyReturnedPhaseCChanged(m_meterGridEnergyReturnedPhaseC);
+            float meterGridEnergyReturnedTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
+            qCDebug(dcKaco()) << "Meter grid feed in total" << meterGridEnergyReturnedTotal << "kWh";
+            if (!qFuzzyCompare(m_meterGridEnergyReturnedTotal, meterGridEnergyReturnedTotal)) {
+                m_meterGridEnergyReturnedTotal = meterGridEnergyReturnedTotal;
+                emit meterGridEnergyReturnedTotalChanged(m_meterGridEnergyReturnedTotal);
             }
 
         } else if (paramHash == m_propertyHashes.key("dd.e_grid_cons")) {
 
             // Meter consumed grid
             stream >> paramValueRaw;
-            float meterGridEnergyConsumedPhaseA = convertEnergyToFloat(paramValueRaw, 16, 2400000.0) / 1000.0;
-            qCDebug(dcKaco()) << "Meter grid consumed phase A" << meterGridEnergyConsumedPhaseA << "kWh";
-            if (!qFuzzyCompare(m_meterGridEnergyConsumedPhaseA, meterGridEnergyConsumedPhaseA)) {
-                m_meterGridEnergyConsumedPhaseA = meterGridEnergyConsumedPhaseA;
-                emit meterGridEnergyConsumedPhaseAChanged(m_meterGridEnergyConsumedPhaseA);
+            float meterGridEnergyConsumedToday = convertEnergyToFloat(paramValueRaw, 16, 2400000.0) / 1000.0;
+            qCDebug(dcKaco()) << "Meter grid consumed today" << meterGridEnergyConsumedToday << "kWh";
+            if (!qFuzzyCompare(m_meterGridEnergyConsumedToday, meterGridEnergyConsumedToday)) {
+                m_meterGridEnergyConsumedToday = meterGridEnergyConsumedToday;
+                emit meterGridEnergyConsumedTodayChanged(m_meterGridEnergyConsumedToday);
             }
 
             stream >> paramValueRaw;
-            float meterGridEnergyConsumedPhaseB = convertEnergyToFloat(paramValueRaw, 16, 7.2E7) / 1000.0;
-            qCDebug(dcKaco()) << "Meter grid consumed phase B" << meterGridEnergyConsumedPhaseB << "kWh";
-            if (!qFuzzyCompare(m_meterGridEnergyConsumedPhaseB, meterGridEnergyConsumedPhaseB)) {
-                m_meterGridEnergyConsumedPhaseB = meterGridEnergyConsumedPhaseB;
-                emit meterGridEnergyConsumedPhaseBChanged(m_meterGridEnergyConsumedPhaseB);
+            float meterGridEnergyConsumedMonth = convertEnergyToFloat(paramValueRaw, 16, 7.2E7) / 1000.0;
+            qCDebug(dcKaco()) << "Meter grid consumed this month" << meterGridEnergyConsumedMonth << "kWh";
+            if (!qFuzzyCompare(m_meterGridEnergyConsumedMonth, meterGridEnergyConsumedMonth)) {
+                m_meterGridEnergyConsumedMonth = meterGridEnergyConsumedMonth;
+                emit meterGridEnergyConsumedMonthChanged(m_meterGridEnergyConsumedMonth);
             }
 
             stream >> paramValueRaw;
-            float meterGridEnergyConsumedPhaseC = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
-            qCDebug(dcKaco()) << "Meter grid consumed phase C" << meterGridEnergyConsumedPhaseC << "kWh";
-            if (!qFuzzyCompare(m_meterGridEnergyConsumedPhaseC, meterGridEnergyConsumedPhaseC)) {
-                m_meterGridEnergyConsumedPhaseC = meterGridEnergyConsumedPhaseC;
-                emit meterGridEnergyConsumedPhaseCChanged(m_meterGridEnergyConsumedPhaseC);
+            float meterGridEnergyConsumedTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
+            qCDebug(dcKaco()) << "Meter grid consumed total" << meterGridEnergyConsumedTotal << "kWh";
+            if (!qFuzzyCompare(m_meterGridEnergyConsumedTotal, meterGridEnergyConsumedTotal)) {
+                m_meterGridEnergyConsumedTotal = meterGridEnergyConsumedTotal;
+                emit meterGridEnergyConsumedTotalChanged(m_meterGridEnergyConsumedTotal);
             }
 
         } else if (paramHash == m_propertyHashes.key("dd.e_compensation")) {
 
             // Meter self consumption
             stream >> paramValueRaw;
-            float meterSelfConsumptionPhaseA = convertEnergyToFloat(paramValueRaw, 16, 240000.0) / 1000.0;
-            qCDebug(dcKaco()) << "Meter self consumed phase A" << meterSelfConsumptionPhaseA << "kWh";
-            if (!qFuzzyCompare(m_meterSelfConsumptionPhaseA, meterSelfConsumptionPhaseA)) {
-                m_meterSelfConsumptionPhaseA = meterSelfConsumptionPhaseA;
-                emit meterSelfConsumptionPhaseAChanged(m_meterSelfConsumptionPhaseA);
+            float meterSelfConsumptionDay = convertEnergyToFloat(paramValueRaw, 16, 240000.0) / 1000.0;
+            qCDebug(dcKaco()) << "Meter self consumed today" << meterSelfConsumptionDay << "kWh";
+            if (!qFuzzyCompare(m_meterSelfConsumptionDay, meterSelfConsumptionDay)) {
+                m_meterSelfConsumptionDay = meterSelfConsumptionDay;
+                emit meterSelfConsumptionDayChanged(m_meterSelfConsumptionDay);
             }
 
             stream >> paramValueRaw;
-            float meterSelfConsumptionPhaseB = convertEnergyToFloat(paramValueRaw, 16, 7200000.0) / 1000.0;
-            qCDebug(dcKaco()) << "Meter self consumed phase B" << meterSelfConsumptionPhaseB << "kWh";
-            if (!qFuzzyCompare(m_meterSelfConsumptionPhaseB, meterSelfConsumptionPhaseB)) {
-                m_meterSelfConsumptionPhaseB = meterSelfConsumptionPhaseB;
-                emit meterSelfConsumptionPhaseBChanged(m_meterSelfConsumptionPhaseB);
+            float meterSelfConsumptionMonth = convertEnergyToFloat(paramValueRaw, 16, 7200000.0) / 1000.0;
+            qCDebug(dcKaco()) << "Meter self consumed this month" << meterSelfConsumptionMonth << "kWh";
+            if (!qFuzzyCompare(m_meterSelfConsumptionMonth, meterSelfConsumptionMonth)) {
+                m_meterSelfConsumptionMonth = meterSelfConsumptionMonth;
+                emit meterSelfConsumptionMonthChanged(m_meterSelfConsumptionMonth);
             }
 
             stream >> paramValueRaw;
-            float meterSelfConsumptionPhaseC = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
-            qCDebug(dcKaco()) << "Meter self consumed phase C" << meterSelfConsumptionPhaseC << "kWh";
-            if (!qFuzzyCompare(m_meterSelfConsumptionPhaseC, meterSelfConsumptionPhaseC)) {
-                m_meterSelfConsumptionPhaseC = meterSelfConsumptionPhaseC;
-                emit meterSelfConsumptionPhaseCChanged(m_meterSelfConsumptionPhaseC);
+            float meterSelfConsumptionTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
+            qCDebug(dcKaco()) << "Meter self consumed total" << meterSelfConsumptionTotal << "kWh";
+            if (!qFuzzyCompare(m_meterSelfConsumptionTotal, meterSelfConsumptionTotal)) {
+                m_meterSelfConsumptionTotal = meterSelfConsumptionTotal;
+                emit meterSelfConsumptionTotalChanged(m_meterSelfConsumptionTotal);
             }
 
         } else if (paramHash == m_propertyHashes.key("dd.q_acc")) {
 
             // Meter AH battery
             stream >> paramValueRaw;
-            float meterAhBatteryPhaseA = convertEnergyToFloat(paramValueRaw, 16, 600.0);
-            qCDebug(dcKaco()) << "Meter Ah battery phase A" << meterAhBatteryPhaseA << "Ah";
-            if (!qFuzzyCompare(m_meterAhBatteryPhaseA, meterAhBatteryPhaseA)) {
-                m_meterAhBatteryPhaseA = meterAhBatteryPhaseA;
-                emit meterAhBatteryPhaseAChanged(m_meterAhBatteryPhaseA);
+            float meterAhBatteryToday = convertEnergyToFloat(paramValueRaw, 16, 600.0);
+            qCDebug(dcKaco()) << "Meter Ah battery today" << meterAhBatteryToday << "Ah";
+            if (!qFuzzyCompare(m_meterAhBatteryToday, meterAhBatteryToday)) {
+                m_meterAhBatteryToday = meterAhBatteryToday;
+                emit meterAhBatteryTodayChanged(m_meterAhBatteryToday);
             }
 
             stream >> paramValueRaw;
-            float meterAhBatteryPhaseB = convertEnergyToFloat(paramValueRaw, 16, 18000.0);
-            qCDebug(dcKaco()) << "Meter Ah battery phase B" << meterAhBatteryPhaseB << "Ah";
-            if (!qFuzzyCompare(m_meterAhBatteryPhaseB, meterAhBatteryPhaseB)) {
-                m_meterAhBatteryPhaseB = meterAhBatteryPhaseB;
-                emit meterAhBatteryPhaseBChanged(m_meterAhBatteryPhaseB);
+            float meterAhBatteryMonth = convertEnergyToFloat(paramValueRaw, 16, 18000.0);
+            qCDebug(dcKaco()) << "Meter Ah battery this month" << meterAhBatteryMonth << "Ah";
+            if (!qFuzzyCompare(m_meterAhBatteryMonth, meterAhBatteryMonth)) {
+                m_meterAhBatteryMonth = meterAhBatteryMonth;
+                emit meterAhBatteryMonthChanged(m_meterAhBatteryMonth);
             }
 
             stream >> paramValueRaw;
-            float meterAhBatteryPhaseC = convertEnergyToFloat(paramValueRaw, 32, 219000.0);
-            qCDebug(dcKaco()) << "Meter Ah battery phase B" << meterAhBatteryPhaseC << "Ah";
-            if (!qFuzzyCompare(m_meterAhBatteryPhaseC, meterAhBatteryPhaseC)) {
-                m_meterAhBatteryPhaseC = meterAhBatteryPhaseC;
-                emit meterAhBatteryPhaseCChanged(m_meterAhBatteryPhaseC);
+            float meterAhBatteryTotal = convertEnergyToFloat(paramValueRaw, 32, 219000.0);
+            qCDebug(dcKaco()) << "Meter Ah battery total" << meterAhBatteryTotal << "Ah";
+            if (!qFuzzyCompare(m_meterAhBatteryTotal, meterAhBatteryTotal)) {
+                m_meterAhBatteryTotal = meterAhBatteryTotal;
+                emit meterAhBatteryTotalChanged(m_meterAhBatteryTotal);
             }
 
 

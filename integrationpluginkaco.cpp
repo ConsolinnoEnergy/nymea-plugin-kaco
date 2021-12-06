@@ -154,23 +154,11 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
         // Energy
         connect(client, &KacoClient::valuesUpdated, thing, [=](){
             // Energy
-            double energyProduced = client->meterInverterEnergyReturnedPhaseA() + client->meterInverterEnergyReturnedPhaseB() + client->meterInverterEnergyReturnedPhaseC();
-            qCDebug(dcKaco()) << "Invertr energy produced" << energyProduced << "kWh";
-            thing->setStateValue(inverterTotalEnergyProducedStateTypeId, energyProduced);
+            thing->setStateValue(inverterTotalEnergyProducedStateTypeId, client->meterInverterEnergyReturnedTotal());
 
-            thing->setStateValue(inverterFeedBatteryTodayStateTypeId, client->meterAhBatteryPhaseA() * client->batteryVoltage() / 1000.0);
-            thing->setStateValue(inverterFeedBatteryMonthStateTypeId, client->meterAhBatteryPhaseB() * client->batteryVoltage() / 1000.0);
-            thing->setStateValue(inverterFeedBatteryTotalStateTypeId, client->meterAhBatteryPhaseC() * client->batteryVoltage() / 1000.0);
-
-            // Available energy
-            // Sum Ah of battery * battery voltage
-//            float totalBatteryAh = client->meterAhBatteryPhaseA() + client->meterAhBatteryPhaseB() + client->meterAhBatteryPhaseC();
-//            float totalEnergy = totalBatteryAh * client->batteryVoltage();
-
-//            qCDebug(dcKaco()) << "Battery total" << totalBatteryAh << "Ah";
-//            qCDebug(dcKaco()) << "Battery total energy" << totalEnergy  << "Wh" << totalEnergy / 1000.0 << "kWh";
-//            thing->setStateValue(batteryCapacityStateTypeId, totalEnergy / 1000.0);
-
+            thing->setStateValue(inverterFeedBatteryTodayStateTypeId, client->meterAhBatteryToday() * client->batteryVoltage() / 1000.0);
+            thing->setStateValue(inverterFeedBatteryMonthStateTypeId, client->meterAhBatteryMonth() * client->batteryVoltage() / 1000.0);
+            thing->setStateValue(inverterFeedBatteryTotalStateTypeId, client->meterAhBatteryTotal() * client->batteryVoltage() / 1000.0);
 
         });
 
@@ -205,22 +193,13 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
             thing->setStateValue(meterFrequencyStateTypeId, client->meterFrequency());
 
             // Calculate the current
-            double currentPowerPhaseA = client->meterPowerInternalPhaseA() / client->meterVoltagePhaseA();
-            double currentPowerPhaseB = client->meterPowerInternalPhaseB() / client->meterVoltagePhaseB();
-            double currentPowerPhaseC = client->meterPowerInternalPhaseC() / client->meterVoltagePhaseC();
-            thing->setStateValue(meterCurrentPhaseAStateTypeId, currentPowerPhaseA);
-            thing->setStateValue(meterCurrentPhaseBStateTypeId, currentPowerPhaseB);
-            thing->setStateValue(meterCurrentPhaseCStateTypeId, currentPowerPhaseC);
+            thing->setStateValue(meterCurrentPhaseAStateTypeId, client->meterPowerInternalPhaseA() / client->meterVoltagePhaseA());
+            thing->setStateValue(meterCurrentPhaseBStateTypeId, client->meterPowerInternalPhaseB() / client->meterVoltagePhaseB());
+            thing->setStateValue(meterCurrentPhaseCStateTypeId, client->meterPowerInternalPhaseC() / client->meterVoltagePhaseC());
 
             // Energy
-            double energyConsumed = client->meterGridEnergyConsumedPhaseA() + client->meterGridEnergyConsumedPhaseB() + client->meterGridEnergyConsumedPhaseC();
-            qCDebug(dcKaco()) << "Meter energy consumed" << energyConsumed << "kWh";
-            thing->setStateValue(meterTotalEnergyConsumedStateTypeId, energyConsumed);
-
-            double energyProduced = client->meterGridEnergyReturnedPhaseA() + client->meterGridEnergyReturnedPhaseB() + client->meterGridEnergyReturnedPhaseC();
-            qCDebug(dcKaco()) << "Meter energy returned" << energyProduced << "kWh";
-            thing->setStateValue(meterTotalEnergyProducedStateTypeId, energyProduced);
-
+            thing->setStateValue(meterTotalEnergyConsumedStateTypeId, client->meterGridEnergyConsumedTotal());
+            thing->setStateValue(meterTotalEnergyProducedStateTypeId, client->meterGridEnergyReturnedTotal());
         });
 
         info->finish(Thing::ThingErrorNoError);
@@ -241,7 +220,7 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
             thing->setStateValue(batteryBatteryLevelStateTypeId, client->batteryPercentage());
             thing->setStateValue(batteryBatteryCriticalStateTypeId, client->batteryPercentage() <= 10);
 
-            // Capacity is still unknown, Lum might be the solution
+            // Capacity is still unknown, Lum might provide the information
 
             float power = client->batteryPower();
             thing->setStateValue(batteryCurrentPowerStateTypeId, power);
