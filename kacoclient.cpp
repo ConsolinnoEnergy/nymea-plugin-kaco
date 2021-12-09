@@ -800,7 +800,8 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             }
 
             stream >> paramValueRaw;
-            float meterGridEnergyReturnedTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
+            // Note: for some reason this value was wrong by factor 10
+            float meterGridEnergyReturnedTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 100.0;
             qCDebug(dcKaco()) << "Meter grid feed in total" << meterGridEnergyReturnedTotal << "kWh";
             if (!qFuzzyCompare(m_meterGridEnergyReturnedTotal, meterGridEnergyReturnedTotal)) {
                 m_meterGridEnergyReturnedTotal = meterGridEnergyReturnedTotal;
@@ -827,7 +828,8 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             }
 
             stream >> paramValueRaw;
-            float meterGridEnergyConsumedTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
+            // Note: for some reason this value was wrong by factor 10
+            float meterGridEnergyConsumedTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 100.0;
             qCDebug(dcKaco()) << "Meter grid consumed total" << meterGridEnergyConsumedTotal << "kWh";
             if (!qFuzzyCompare(m_meterGridEnergyConsumedTotal, meterGridEnergyConsumedTotal)) {
                 m_meterGridEnergyConsumedTotal = meterGridEnergyConsumedTotal;
