@@ -1,7 +1,7 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: ${ProjectName}
-Upstream-Contact: simon stürz <s.t@nymea.io>
-Copyright: 2020, simon stürz 
+Upstream-Contact: Simon Stürz <simon.stuerz@nymea.io>
+Copyright: 2021, Simon Stürz <simon.stuerz@nymea.io>
 
 
 License: LGPL-3
@@ -10,5 +10,5 @@ License: LGPL-3
 
 Files: *
 License: LGPL-3
-Copyright: simon stürz <s.t@nymea.io>
+Copyright: Simon Stürz <simon.stuerz@nymea.io>
 
