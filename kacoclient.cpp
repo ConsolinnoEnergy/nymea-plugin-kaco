@@ -1,3 +1,33 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+* Copyright 2013 - 2021, nymea GmbH
+* Contact: contact@nymea.io
+*
+* This file is part of nymea.
+* This project including source code and documentation is protected by
+* copyright law, and remains the property of nymea GmbH. All rights, including
+* reproduction, publication, editing and translation, are reserved. The use of
+* this project is subject to the terms of a license agreement to be concluded
+* with nymea GmbH in accordance with the terms of use of nymea GmbH, available
+* under https://nymea.io/license
+*
+* GNU Lesser General Public License Usage
+* Alternatively, this project may be redistributed and/or modified under the
+* terms of the GNU Lesser General Public License as published by the Free
+* Software Foundation; version 3. This project is distributed in the hope that
+* it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+* Lesser General Public License for more details.
+*
+* You should have received a copy of the GNU Lesser General Public License
+* along with this project. If not, see <https://www.gnu.org/licenses/>.
+*
+* For any further details and any questions please contact us under
+* contact@nymea.io or see our FAQ/Licensing Information on
+* https://nymea.io/license/faq
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 #include "kacoclient.h"
 #include "extern-plugininfo.h"
 
@@ -493,17 +523,20 @@ void KacoClient::processResponse(const QByteArray &response)
 
 void KacoClient::sendPicRequest()
 {
-    // 55aa 30 0b00 ad030000 1b3d165f273c baa259c8 00
-    // edde 30 3900 e00b0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 bfb3ae2fb0bf 00 00000000
+    // Login flow: Send pic 4 times, first only random byte, the following 3 using black magic with the key sent from the inverter
+    // Once done successfully, we have to refresh the key every 5 seconds
 
-    // 55aa 30 0b00 7e040000 991f3a2db9e0 0040e4a1 01
-    // edde 30 3900 650c0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 dae8f0788096 02 00000100
+    // Request:  55aa 30 0b00 ad030000 1b3d165f273c baa259c8 00
+    // Response: edde 30 3900 e00b0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 bfb3ae2fb0bf 00 00000000
 
-    // 55aa 30 0b00 c8040000 d26765783ed9 90a42640 01
-    // edde 30 3900 300c0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 98a7bd5afeb7 02 00000100
+    // Request:  55aa 30 0b00 7e040000 991f3a2db9e0 0040e4a1 01
+    // Response: edde 30 3900 650c0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 dae8f0788096 02 00000100
 
-    // 55aa 30 0b00 06050000 aefdd5020c77 1950f3a4 01
-    // edde 30 3900 c30b0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 42db89d3c065 02 00000100
+    // Request:  55aa 30 0b00 c8040000 d26765783ed9 90a42640 01
+    // Response: edde 30 3900 300c0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 98a7bd5afeb7 02 00000100
+
+    // Request:  55aa 30 0b00 06050000 aefdd5020c77 1950f3a4 01
+    // Response: edde 30 3900 c30b0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 42db89d3c065 02 00000100
 
     qCDebug(dcKaco()) << "Sending PIC request...";
 

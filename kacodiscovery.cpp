@@ -1,3 +1,33 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+* Copyright 2013 - 2021, nymea GmbH
+* Contact: contact@nymea.io
+*
+* This file is part of nymea.
+* This project including source code and documentation is protected by
+* copyright law, and remains the property of nymea GmbH. All rights, including
+* reproduction, publication, editing and translation, are reserved. The use of
+* this project is subject to the terms of a license agreement to be concluded
+* with nymea GmbH in accordance with the terms of use of nymea GmbH, available
+* under https://nymea.io/license
+*
+* GNU Lesser General Public License Usage
+* Alternatively, this project may be redistributed and/or modified under the
+* terms of the GNU Lesser General Public License as published by the Free
+* Software Foundation; version 3. This project is distributed in the hope that
+* it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+* Lesser General Public License for more details.
+*
+* You should have received a copy of the GNU Lesser General Public License
+* along with this project. If not, see <https://www.gnu.org/licenses/>.
+*
+* For any further details and any questions please contact us under
+* contact@nymea.io or see our FAQ/Licensing Information on
+* https://nymea.io/license/faq
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 #include "kacodiscovery.h"
 #include "extern-plugininfo.h"
 
@@ -8,7 +38,6 @@
 #include <QUrl>
 #include <QDataStream>
 #include <QNetworkInterface>
-
 
 KacoDiscovery::KacoDiscovery(QObject *parent) :
     QObject(parent)
@@ -216,20 +245,20 @@ void KacoDiscovery::processDatagram(const QByteArray &datagram)
 
         QByteArray answerData;
         for (int i = 0; i < dataLength && !stream.atEnd(); i++) {
-            quint8 answereByte;
-            stream >> answereByte;
-            answerData.append(answereByte);
+            quint8 answerByte;
+            stream >> answerByte;
+            answerData.append(answerByte);
         }
 
         if (answerData.count() == 0)
             continue;
 
-        //qCDebug(dcKaco()) << "Discovery: Answere data length" << answerData.length() << answerData.toHex();
+        //qCDebug(dcKaco()) << "Discovery: Answer data length" << answerData.length() << answerData.toHex();
 
-        // Now parse the answere data depending on the type
+        // Now parse the answer data depending on the type
         switch (type) {
         case RecordTypeA: {
-            qCDebug(dcKaco()) << "Discovery: --> Answere" << i << "| Name:" << name << "TTL:" << ttl << "Length:" << dataLength << static_cast<RecordType>(type);
+            qCDebug(dcKaco()) << "Discovery: --> Answer" << i << "| Name:" << name << "TTL:" << ttl << "Length:" << dataLength << static_cast<RecordType>(type);
             QDataStream answerDataStream(&answerData, QIODevice::ReadOnly);
             if (dataLength == 4) {
                 quint32 hostAddressRaw;
@@ -246,7 +275,7 @@ void KacoDiscovery::processDatagram(const QByteArray &datagram)
             break;
         }
         case RecordTypeSrv: { // SRV record (Server selection)
-            qCDebug(dcKaco()) << "Discovery: --> Answere" << i << "| Name:" << name << "TTL:" << ttl << "Length:" << dataLength;
+            qCDebug(dcKaco()) << "Discovery: --> Answer" << i << "| Name:" << name << "TTL:" << ttl << "Length:" << dataLength;
             QDataStream answerDataStream(&answerData, QIODevice::ReadOnly);
             quint16 priority; quint16 weight;
             answerDataStream >> priority >> weight >> servicePort;
@@ -262,7 +291,7 @@ void KacoDiscovery::processDatagram(const QByteArray &datagram)
             break;
         }
         case RecordTypePtr: { // PTR record
-            qCDebug(dcKaco()) << "Discovery: --> Answere" << i << "| Name:" << name << "TTL:" << ttl << "Length:" << dataLength;
+            qCDebug(dcKaco()) << "Discovery: --> Answer" << i << "| Name:" << name << "TTL:" << ttl << "Length:" << dataLength;
             QDataStream answerDataStream(&answerData, QIODevice::ReadOnly);
             QByteArray domainData;
             while (!answerDataStream.atEnd()) {
@@ -278,7 +307,7 @@ void KacoDiscovery::processDatagram(const QByteArray &datagram)
             break;
         }
         case RecordTypeTxt: {
-            qCDebug(dcKaco()) << "Discovery: --> Answere" << i << "| Name:" << name << "TTL:" << ttl << "Length:" << dataLength;
+            qCDebug(dcKaco()) << "Discovery: --> Answer" << i << "| Name:" << name << "TTL:" << ttl << "Length:" << dataLength;
             QDataStream answerDataStream(&answerData, QIODevice::ReadOnly);
             quint8 txtLength;
             QStringList txtRecords;

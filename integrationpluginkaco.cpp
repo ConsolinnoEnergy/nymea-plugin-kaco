@@ -28,7 +28,6 @@
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-
 #include "integrationpluginkaco.h"
 #include "plugininfo.h"
 
@@ -36,7 +35,7 @@
 
 IntegrationPluginKaco::IntegrationPluginKaco()
 {
-    //KacoClient client(QHostAddress::LocalHost, 9760, "%lisala99");
+
 }
 
 void IntegrationPluginKaco::init()
