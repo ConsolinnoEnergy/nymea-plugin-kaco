@@ -4,10 +4,12 @@ QT += network
 
 SOURCES += \
     integrationpluginkaco.cpp \
-    kacoclient.cpp
+    kacoclient.cpp \
+    kacodiscovery.cpp
 
 HEADERS += \
     integrationpluginkaco.h \
-    kacoclient.h
+    kacoclient.h \
+    kacodiscovery.h
 
 
