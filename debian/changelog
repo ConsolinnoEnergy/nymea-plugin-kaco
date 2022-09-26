@@ -1,4 +1,4 @@
-nymea-plugin-kaco (0.0.1) xenial; urgency=medium
+nymea-plugin-kaco (0.0.1-1) xenial; urgency=medium
 
   [ Simon Stürz ]
   * Adding initial version of Kaco Energy
