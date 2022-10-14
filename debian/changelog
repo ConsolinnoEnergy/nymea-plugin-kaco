@@ -1,3 +1,17 @@
+nymea-plugin-kaco (0.0.1-1.2) qa; urgency=medium
+
+  * Weiterer Test
+  * 
+
+ -- root <root@runner-5moj9tgx-project-582-concurrent-1wtp2q>  Mon, 26 Sep 2022 14:35:11 +0000
+
+nymea-plugin-kaco (0.0.1-1.1) UNRELEASED; urgency=medium
+
+  * Testweises package update
+  * 
+
+ -- root <root@runner-5moj9tgx-project-582-concurrent-1wtp2q>  Mon, 26 Sep 2022 14:23:37 +0000
+
 nymea-plugin-kaco (0.0.1-1) xenial; urgency=medium
 
   [ Simon Stürz ]
