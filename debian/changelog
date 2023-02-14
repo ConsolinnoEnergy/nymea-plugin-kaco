@@ -1,4 +1,24 @@
-nymea-plugin-kaco (0.0.1) xenial; urgency=medium
+nymea-plugin-kaco (1.5.120-1) qa; urgency=medium
+
+  * Bumps version number to be in sync with nymea core version: 1.5.1
+
+ -- Leonhard Heizinger <l.heizinger@consolinno.de>  Wed, 14 Dec 2022 10:43:41 +0100
+
+nymea-plugin-kaco (0.0.1-1.2) qa; urgency=medium
+
+  * Weiterer Test
+  * 
+
+ -- root <root@runner-5moj9tgx-project-582-concurrent-1wtp2q>  Mon, 26 Sep 2022 14:35:11 +0000
+
+nymea-plugin-kaco (0.0.1-1.1) UNRELEASED; urgency=medium
+
+  * Testweises package update
+  * 
+
+ -- root <root@runner-5moj9tgx-project-582-concurrent-1wtp2q>  Mon, 26 Sep 2022 14:23:37 +0000
+
+nymea-plugin-kaco (0.0.1-1) xenial; urgency=medium
 
   [ Simon Stürz ]
   * Adding initial version of Kaco Energy
