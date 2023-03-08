@@ -1,3 +1,8 @@
+nymea-plugin-kaco (1.5.120-2) qa; urgency=medium
+  * No changes - Bumping debian revision for Consolinno HEMS v0.3.0
+
+ -- Leonhard Heizinger <l.heizinger@consolinno.de>  Wed, 27 Feb 2022 10:28:48 +0100
+
 nymea-plugin-kaco (1.5.120-1) qa; urgency=medium
 
   * Bumps version number to be in sync with nymea core version: 1.5.1
