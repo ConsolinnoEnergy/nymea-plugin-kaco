@@ -33,6 +33,12 @@
 
 #include <QCryptographicHash>
 #include <QDataStream>
+#include <QFile>
+#include <QTextStream>
+#include <QDir>
+#include <QFileInfo>
+#include <iterator>
+#include <sstream>
 
 #include "math.h"
 
@@ -552,44 +558,117 @@ void KacoClient::sendPicRequest()
         stream << static_cast<quint8>(newRandomBytes.at(i));
 
     // 10: userId
-    stream << m_userId;
+    //stream << m_userId;
+    stream << 0x00;
 
     // If we already received a random pic key from the server,
     // lets send the actual key encrypted using black magic
     if (m_userId != 0) {
-        QByteArray keyBuffer(4, '0');
-        keyBuffer[0] = m_userPasswordHash & 0xff;
-        keyBuffer[1] = (m_userPasswordHash >> 8) & 0xff;
-        keyBuffer[2] = (m_userPasswordHash >> 16) & 0xff;
-        keyBuffer[3] = (m_userPasswordHash >> 24) & 0xff;
-
-        // Do some black magic with the key using servers the random bytes
-
-        //qCDebug(dcKaco()) << "key buffer start" << byteArrayToHexString(keyBuffer);
-        //qCDebug(dcKaco()) << "Using pic response random bytes" << byteArrayToHexString(m_picRandomKey);
-
-        quint8 keyLength = keyBuffer.size();
-        for (quint8 i = 0; i < keyLength && i < m_picRandomKey.size(); i++)
-            keyBuffer[i] = keyBuffer.at(i) + m_picRandomKey.at(i);
-
-        //qCDebug(dcKaco()) << "key buffer adding random bytes" << byteArrayToHexString(keyBuffer);
-        quint8 iterations = 2;
-        for (quint8 i = 0; i < iterations; i++) {
-            keyBuffer[i % keyLength] = keyBuffer.at(i % keyLength) + 1;
-            keyBuffer[i % keyLength] = keyBuffer.at(i % keyLength) + keyBuffer.at((i + 10) % keyLength);
-            keyBuffer[(i + 3) % keyLength] = keyBuffer.at((i + 3) % keyLength) * keyBuffer.at((i + 11) % keyLength);
-            keyBuffer[i % keyLength] = keyBuffer.at(i % keyLength) + keyBuffer.at((i + 7) % keyLength);
-            //qCDebug(dcKaco()) << "key buffer after iteration" << i << byteArrayToHexString(keyBuffer);
-        }
-
-        //qCDebug(dcKaco()) << "key buffer end  " << byteArrayToHexString(keyBuffer);
-        payload[6] = keyBuffer.at(0);
-        payload[7] = keyBuffer.at(1);
-        payload[8] = keyBuffer.at(2);
-        payload[9] = keyBuffer.at(3);
+        payload[6] = m_userPasswordHash & 0xff;
+        payload[7] = (m_userPasswordHash >> 8) & 0xff;
+        payload[8] = (m_userPasswordHash >> 16) & 0xff;
+        payload[9] = (m_userPasswordHash >> 24) & 0xff;
+        shuffleBytes(payload, 6, 4, m_picRandomKey, payload, 6, 2);
+        payload[10] = m_userId & 0xff;
     }
 
     sendData(buildPackage(MessageTypePic, payload));
+}
+
+void KacoClient::shuffleBytes(const QByteArray &src, int spos, int len, const QByteArray &key, QByteArray &dest, int dpos, int k)
+{
+    QByteArray tmp;
+    tmp.resize(len);
+    if (src.size() < spos + len) {
+        qCDebug(dcKaco()) << "Source array out of bounds.";
+        return;
+    }
+    for (int i{0}; i < len; i++)
+        tmp[i] = src.at(spos + i);
+
+    for (int i{0}; i < len && i < key.size(); i++)
+        tmp[i] = tmp.at(i) + key.at(i);
+
+    for (int i{0}; i < k; i++) {
+        tmp[i % len] = tmp.at(i % len) + 1;
+        tmp[i % len] = tmp.at(i % len) + tmp.at((i + 10) % len);
+        tmp[(i + 3) % len] = tmp.at((i + 3) % len) * tmp.at((i + 11) % len);
+        tmp[i % len] = tmp.at(i % len) + tmp.at((i + 7) % len);
+    }
+
+    if (dest.size() < dpos + len) {
+        qCDebug(dcKaco()) << "Destination array out of bounds.";
+        return;
+    }
+    for (int i{0}; i < len; i++)
+        dest[dpos + i] = tmp.at(i);
+}
+
+QByteArray KacoClient::updateIdentKey(const QByteArray &randomKey)
+{
+    // Load ident key if it is not loaded already.
+    if (m_identKey.size() < 1) {
+
+        // Read ident key file. Directory and filename are specified here.
+        QString homePath = QDir::homePath();
+        QString relativeFolder = "tmp";
+        QDir fileFolder(homePath + "/" + relativeFolder);
+        if (!fileFolder.exists()) {
+            qCDebug(dcKaco()) << "Ident key file should be in directory " + fileFolder.path() + "/, but that directory does not exist.";
+            return randomKey;
+        }
+
+        QString fileName = "identkey.txt";
+        QString filePath = fileFolder.path() + "/" + fileName;
+        bool fileExists = QFileInfo::exists(filePath) && QFileInfo(filePath).isFile();
+        if (!fileExists) {
+            qCDebug(dcKaco()) << "Ident key file " + fileName + " should be in directory " + fileFolder.path() + "/, but that file does not exist.";
+            return randomKey;
+        }
+
+        QFile file(filePath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            qCDebug(dcKaco()) << "Could not open ident key file " + fileName + " in directory " + fileFolder.path() + "/";
+            return randomKey;
+        }
+
+        QTextStream in(&file);
+        QString identKeyString = in.readLine();
+        file.close();
+        qCDebug(dcKaco()) << "Contents of ident key file " + fileName + " in directory " + fileFolder.path() + "/ read:" + identKeyString;
+
+        // Check contents of ident key file and transform to a byte array.
+        int stringLength = identKeyString.length();
+        std::stringstream ss;
+        if (stringLength % 2) {
+            qCDebug(dcKaco()) << "Ident key file " + fileName + " in directory " + fileFolder.path() + "/ seems to be invalid.";
+            return randomKey;
+        }
+
+        for (const auto &item : qAsConst(identKeyString)) {
+            if (item.isLetterOrNumber()) {
+                ss << item.toLatin1();
+            } else {
+                qCDebug(dcKaco()) << "Ident key file " + fileName + " in directory " + fileFolder.path() + "/ seems to be invalid.";
+                return randomKey;
+            }
+        }
+        std::string stringConversion = ss.str();
+        int byteCount = stringLength / 2;
+        m_identKey.resize(byteCount);
+        std::string substring;
+        for (int i{0}; i < byteCount; ++i) {
+            substring = stringConversion.substr(i * 2, 2);
+            m_identKey[i] = std::stoul(substring, nullptr, 16); // Convert a hex number string to number.
+        }
+    }
+
+    quint8 len = 8;
+    QByteArray tmp;
+    tmp.resize(len);
+    shuffleBytes(m_identKey, 0, len, randomKey, tmp, 0, 99);
+
+    return tmp;
 }
 
 void KacoClient::processPicResponse(const QByteArray &message)
