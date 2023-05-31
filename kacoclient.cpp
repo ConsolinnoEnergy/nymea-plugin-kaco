@@ -561,15 +561,35 @@ void KacoClient::sendPicRequest()
     //stream << m_userId;
     stream << 0x00;
 
-    // If we already received a random pic key from the server,
-    // lets send the actual key encrypted using black magic
     if (m_userId != 0) {
-        payload[6] = m_userPasswordHash & 0xff;
-        payload[7] = (m_userPasswordHash >> 8) & 0xff;
-        payload[8] = (m_userPasswordHash >> 16) & 0xff;
-        payload[9] = (m_userPasswordHash >> 24) & 0xff;
-        shuffleBytes(payload, 6, 4, m_picRandomKey, payload, 6, 2);
-        payload[10] = m_userId & 0xff;
+        if (m_communicationVer8x) {
+
+            if (m_mac.size() > 0) {
+                shuffleBytes(m_mac, 0, 6, m_picRandomKey, payload, 0, 99);
+            } else {
+                qCDebug(dcKaco()) << "No mac received, cannot send PIC request.";
+                return;
+            }
+
+            payload[6] = m_userPasswordHash & 0xff;
+            payload[7] = (m_userPasswordHash >> 8) & 0xff;
+            payload[8] = (m_userPasswordHash >> 16) & 0xff;
+            payload[9] = (m_userPasswordHash >> 24) & 0xff;
+            shuffleBytes(payload, 6, 4, m_picRandomKey, payload, 6, 2);
+            QByteArray tmp = updateIdentKey(m_picRandomKey);
+            for (int i = 0; i < tmp.size(); i++)
+                stream << static_cast<quint8>(tmp.at(i));
+
+        } else {
+            // If we already received a random pic key from the server,
+            // lets send the actual key encrypted using black magic
+            payload[6] = m_userPasswordHash & 0xff;
+            payload[7] = (m_userPasswordHash >> 8) & 0xff;
+            payload[8] = (m_userPasswordHash >> 16) & 0xff;
+            payload[9] = (m_userPasswordHash >> 24) & 0xff;
+            shuffleBytes(payload, 6, 4, m_picRandomKey, payload, 6, 2);
+            payload[10] = m_userId & 0xff;
+        }
     }
 
     sendData(buildPackage(MessageTypePic, payload));
@@ -681,6 +701,11 @@ void KacoClient::processPicResponse(const QByteArray &message)
             // User type 1 ?
             m_userType = 1;
             qCDebug(dcKaco()) << "- User type:" << m_userType;
+        }
+        if (m_picHighVersion < 8) {
+            m_communicationVer8x = false;
+        } else {
+            m_communicationVer8x = true;
         }
         qCDebug(dcKaco()) << "- PIC version: " << QString("%1.%2").arg(m_picHighVersion).arg(m_picLowVersion);
     }
