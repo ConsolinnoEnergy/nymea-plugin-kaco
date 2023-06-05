@@ -1,4 +1,4 @@
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+﻿/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
 * Copyright 2013 - 2021, nymea GmbH
 * Contact: contact@nymea.io
@@ -559,8 +559,9 @@ void KacoClient::sendPicRequest()
 
     // 10: userId
     //stream << m_userId;
-    stream << 0x00;
+    stream << static_cast<quint8>(0x00);
 
+    // m_userId is 0 on startup and changes to 2 on the first received response. Here, it acts as a "have we received anything yet?" test.
     if (m_userId != 0) {
         if (m_communicationVer8x) {
 
@@ -655,7 +656,7 @@ QByteArray KacoClient::updateIdentKey(const QByteArray &randomKey)
         QTextStream in(&file);
         QString identKeyString = in.readLine();
         file.close();
-        qCDebug(dcKaco()) << "Contents of ident key file " + fileName + " in directory " + fileFolder.path() + "/ read:" + identKeyString;
+        qCDebug(dcKaco()) << "Contents of ident key file " + fileName + " in directory " + fileFolder.path() + "/ read: " + identKeyString;
 
         // Check contents of ident key file and transform to a byte array.
         int stringLength = identKeyString.length();

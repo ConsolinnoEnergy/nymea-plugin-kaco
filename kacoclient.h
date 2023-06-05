@@ -202,7 +202,7 @@ private:
     QByteArray m_picRandomKey;
     quint32 m_clientId = 0;
     uint m_lastPicTimestamp = 0;
-    bool m_communicationVer8x = false;
+    bool m_communicationVer8x = true;
 
     // Properties of data sets
     QStringList m_statusProperties;
