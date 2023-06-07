@@ -128,7 +128,7 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
     m_socket = new QTcpSocket(this);
     connect(m_socket, &QTcpSocket::connected, this, [=](){
         qCDebug(dcKaco()) << "Connected to" << QString("%1:%2").arg(m_hostAddress.toString()).arg(m_port);
-        emit connectedChanged(true);
+        //emit connectedChanged(true); Emit connected only when the device is actually answering.
         setState(StateAuthenticate);
         resetData();
 
@@ -504,6 +504,12 @@ void KacoClient::processResponse(const QByteArray &response)
     quint16 responseStart;
     stream >> responseStart;
 
+    if (responseStart != static_cast<quint16>(0xedde)) {
+        qCWarning(dcKaco()) << "Configured device is not a Kaco BH10." ;
+        return;
+    }
+    emit connectedChanged(true);
+
     quint8 messageType;
     stream >> messageType;
 
@@ -733,7 +739,25 @@ void KacoClient::processPicResponse(const QByteArray &message)
 
     if (message.count() >= 62) {
         quint8 userId = message.at(61);
-        qCDebug(dcKaco()) << "- User ID:" << byteToHexString(userId) << userId;
+        if (m_communicationVer8x) {
+            if (userId > 7) {
+                qCWarning(dcKaco()) << "- Error: Multiple devices try to accessed this inverter. Response invalid.";
+            } else {
+                if ((userId & 0b010) == 0b010) {
+                    qCDebug(dcKaco()) << "- Access Status: Ident Key Accepted.";
+                } else {
+                    qCWarning(dcKaco()) << "- Access Status: Ident Key Reject.";
+                }
+                if ((userId & 0b0100) == 0b0100) {
+                    qCDebug(dcKaco()) << "- Access Status: User Key Accepted.";
+                } else {
+                    qCWarning(dcKaco()) << "- Access Status: User Key Reject.";
+                }
+            }
+        } else {
+            qCDebug(dcKaco()) << "- User ID:" << byteToHexString(userId) << userId;
+        }
+
     }
 
     if (message.count() >= 66) {
@@ -1442,6 +1466,7 @@ void KacoClient::refresh()
             m_requestPendingTicks = 0;
             m_requestPending = false;
             qCWarning(dcKaco()) << "No response received for" << m_state << ". Retry";
+            emit connectedChanged(false);
         } else {
             return;
         }

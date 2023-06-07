@@ -161,48 +161,42 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
 
         });
 
+
+        // Meter. Since we need to summ up stuff, lets react on the valuesChanged signal
+        connect(client, &KacoClient::valuesUpdated, thing, [=](){
+            Things meterThings = myThings().filterByParentId(thing->id()).filterByThingClassId(meterThingClassId);
+            if (!meterThings.isEmpty()) {
+                meterThings.first()->setStateValue(meterCurrentPowerPhaseAStateTypeId, client->meterPowerInternalPhaseA());
+                meterThings.first()->setStateValue(meterCurrentPowerPhaseBStateTypeId, client->meterPowerInternalPhaseB());
+                meterThings.first()->setStateValue(meterCurrentPowerPhaseCStateTypeId, client->meterPowerInternalPhaseC());
+                meterThings.first()->setStateValue(meterCurrentPowerStateTypeId, client->meterPowerInternalPhaseA() + client->meterPowerInternalPhaseB() + client->meterPowerInternalPhaseC());
+                meterThings.first()->setStateValue(meterVoltagePhaseAStateTypeId, client->meterVoltagePhaseA());
+                meterThings.first()->setStateValue(meterVoltagePhaseBStateTypeId, client->meterVoltagePhaseB());
+                meterThings.first()->setStateValue(meterVoltagePhaseCStateTypeId, client->meterVoltagePhaseC());
+                meterThings.first()->setStateValue(meterFrequencyStateTypeId, client->meterFrequency());
+
+                // Calculate the current
+                meterThings.first()->setStateValue(meterCurrentPhaseAStateTypeId, client->meterPowerInternalPhaseA() / client->meterVoltagePhaseA());
+                meterThings.first()->setStateValue(meterCurrentPhaseBStateTypeId, client->meterPowerInternalPhaseB() / client->meterVoltagePhaseB());
+                meterThings.first()->setStateValue(meterCurrentPhaseCStateTypeId, client->meterPowerInternalPhaseC() / client->meterVoltagePhaseC());
+
+                // Energy
+                meterThings.first()->setStateValue(meterTotalEnergyConsumedStateTypeId, client->meterGridEnergyConsumedTotal());
+                meterThings.first()->setStateValue(meterTotalEnergyProducedStateTypeId, client->meterGridEnergyReturnedTotal());
+            }
+        });
+
         m_clients.insert(thing, client);
         client->connectToDevice();
 
         info->finish(Thing::ThingErrorNoError);
     } else if (thing->thingClassId() == meterThingClassId) {
-        // Get the client for this meter
-        KacoClient *client = m_clients.value(myThings().findById(thing->parentId()));
-        if (!client) {
-            qCWarning(dcKaco()) << "Could not find kaco client for set up" << thing;
-            info->finish(Thing::ThingErrorHardwareNotAvailable);
-            return;
-        }
-
-        // Set the initial connected state
-        thing->setStateValue(meterConnectedStateTypeId, client->connected());
-
-        // Since we need to summ up stuff, lets react on the valuesChanged signal
-        connect(client, &KacoClient::valuesUpdated, thing, [=](){
-            // We received data, we are connected
-            thing->setStateValue(meterConnectedStateTypeId, true);
-
-            thing->setStateValue(meterCurrentPowerPhaseAStateTypeId, client->meterPowerInternalPhaseA());
-            thing->setStateValue(meterCurrentPowerPhaseBStateTypeId, client->meterPowerInternalPhaseB());
-            thing->setStateValue(meterCurrentPowerPhaseCStateTypeId, client->meterPowerInternalPhaseC());
-            thing->setStateValue(meterCurrentPowerStateTypeId, client->meterPowerInternalPhaseA() + client->meterPowerInternalPhaseB() + client->meterPowerInternalPhaseC());
-            thing->setStateValue(meterVoltagePhaseAStateTypeId, client->meterVoltagePhaseA());
-            thing->setStateValue(meterVoltagePhaseBStateTypeId, client->meterVoltagePhaseB());
-            thing->setStateValue(meterVoltagePhaseCStateTypeId, client->meterVoltagePhaseC());
-            thing->setStateValue(meterFrequencyStateTypeId, client->meterFrequency());
-
-            // Calculate the current
-            thing->setStateValue(meterCurrentPhaseAStateTypeId, client->meterPowerInternalPhaseA() / client->meterVoltagePhaseA());
-            thing->setStateValue(meterCurrentPhaseBStateTypeId, client->meterPowerInternalPhaseB() / client->meterVoltagePhaseB());
-            thing->setStateValue(meterCurrentPhaseCStateTypeId, client->meterPowerInternalPhaseC() / client->meterVoltagePhaseC());
-
-            // Energy
-            thing->setStateValue(meterTotalEnergyConsumedStateTypeId, client->meterGridEnergyConsumedTotal());
-            thing->setStateValue(meterTotalEnergyProducedStateTypeId, client->meterGridEnergyReturnedTotal());
-        });
-
+        // Nothing to do here, we get all information from the inverter connection
         info->finish(Thing::ThingErrorNoError);
-
+        Thing *parentThing = myThings().findById(thing->parentId());
+        if (parentThing) {
+            thing->setStateValue(meterConnectedStateTypeId, parentThing->stateValue(inverterConnectedStateTypeId).toBool());
+        }
     } else if (thing->thingClassId() == batteryThingClassId) {
         // Get the client for this battery
         KacoClient *client = m_clients.value(myThings().findById(thing->parentId()));
