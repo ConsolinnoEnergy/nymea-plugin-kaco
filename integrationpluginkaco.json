@@ -69,6 +69,15 @@
                             "cached": false
                         },
                         {
+                            "id": "776f5a3d-9900-432d-99fa-7098335a5308",
+                            "name": "authorization",
+                            "displayName": "Authorization",
+                            "displayNameEvent": "Authorization changed",
+                            "type": "bool",
+                            "defaultValue": false,
+                            "cached": false
+                        },
+                        {
                             "id": "51e03cd1-2593-45bf-9295-e5bf42402b35",
                             "name": "totalEnergyProduced",
                             "displayName": "Total energy produced",
@@ -362,6 +371,17 @@
                     "displayName": "Kaco Battery",
                     "createMethods": ["auto"],
                     "interfaces": ["energystorage", "connectable"],
+                    "settingsTypes": [
+                        {
+                            "id": "fc65c6e4-8bcb-43c8-8b59-cef11ae60369",
+                            "name": "capacity",
+                            "displayName": "Battery capacity kWh",
+                            "type": "uint",
+                            "minValue": 0,
+                            "maxValue": 10000,
+                            "defaultValue": 0
+                        }
+                    ],
                     "paramTypes":[
 
                     ],

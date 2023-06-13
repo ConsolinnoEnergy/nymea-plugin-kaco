@@ -422,6 +422,8 @@ void KacoClient::resetData()
     m_picRandomKey.clear();
     m_clientId = 0;
     m_lastPicTimestamp = 0;
+    m_authorization = false;
+    emit authorizationChanged(false);
 
     // Properties
 
@@ -576,7 +578,7 @@ void KacoClient::sendPicRequest()
             if (m_mac.size() > 0) {
                 shuffleBytes(m_mac, 0, 6, m_picRandomKey, payload, 0, 99);
             } else {
-                qCDebug(dcKaco()) << "No mac received, cannot send PIC request.";
+                qCWarning(dcKaco()) << "No mac received, cannot send PIC request.";
                 return;
             }
 
@@ -609,7 +611,7 @@ void KacoClient::shuffleBytes(const QByteArray &src, int spos, int len, const QB
     QByteArray tmp;
     tmp.resize(len);
     if (src.size() < spos + len) {
-        qCDebug(dcKaco()) << "Source array out of bounds.";
+        qCWarning(dcKaco()) << "Source array out of bounds.";
         return;
     }
     for (int i{0}; i < len; i++)
@@ -626,7 +628,7 @@ void KacoClient::shuffleBytes(const QByteArray &src, int spos, int len, const QB
     }
 
     if (dest.size() < dpos + len) {
-        qCDebug(dcKaco()) << "Destination array out of bounds.";
+        qCWarning(dcKaco()) << "Destination array out of bounds.";
         return;
     }
     for (int i{0}; i < len; i++)
@@ -640,24 +642,24 @@ QByteArray KacoClient::updateIdentKey(const QByteArray &randomKey)
 
         // Read ident key file. Directory and filename are specified here.
         QString homePath = QDir::homePath();
-        QString relativeFolder = "tmp";
+        QString relativeFolder = "kaco";
         QDir fileFolder(homePath + "/" + relativeFolder);
         if (!fileFolder.exists()) {
-            qCDebug(dcKaco()) << "Ident key file should be in directory " + fileFolder.path() + "/, but that directory does not exist.";
+            qCWarning(dcKaco()) << "Ident key file should be in directory " + fileFolder.path() + "/, but that directory does not exist.";
             return randomKey;
         }
 
-        QString fileName = "identkey.txt";
+        QString fileName = "ident.key";
         QString filePath = fileFolder.path() + "/" + fileName;
         bool fileExists = QFileInfo::exists(filePath) && QFileInfo(filePath).isFile();
         if (!fileExists) {
-            qCDebug(dcKaco()) << "Ident key file " + fileName + " should be in directory " + fileFolder.path() + "/, but that file does not exist.";
+            qCWarning(dcKaco()) << "Ident key file " + fileName + " should be in directory " + fileFolder.path() + "/, but that file does not exist.";
             return randomKey;
         }
 
         QFile file(filePath);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            qCDebug(dcKaco()) << "Could not open ident key file " + fileName + " in directory " + fileFolder.path() + "/";
+            qCWarning(dcKaco()) << "Could not open ident key file " + fileName + " in directory " + fileFolder.path() + "/";
             return randomKey;
         }
 
@@ -670,7 +672,7 @@ QByteArray KacoClient::updateIdentKey(const QByteArray &randomKey)
         int stringLength = identKeyString.length();
         std::stringstream ss;
         if (stringLength % 2) {
-            qCDebug(dcKaco()) << "Ident key file " + fileName + " in directory " + fileFolder.path() + "/ seems to be invalid.";
+            qCWarning(dcKaco()) << "Ident key file " + fileName + " in directory " + fileFolder.path() + "/ seems to be invalid.";
             return randomKey;
         }
 
@@ -678,7 +680,7 @@ QByteArray KacoClient::updateIdentKey(const QByteArray &randomKey)
             if (item.isLetterOrNumber()) {
                 ss << item.toLatin1();
             } else {
-                qCDebug(dcKaco()) << "Ident key file " + fileName + " in directory " + fileFolder.path() + "/ seems to be invalid.";
+                qCWarning(dcKaco()) << "Ident key file " + fileName + " in directory " + fileFolder.path() + "/ seems to be invalid.";
                 return randomKey;
             }
         }
@@ -832,6 +834,11 @@ void KacoClient::sendInverterRequest()
 void KacoClient::processInverterResponse(const QByteArray &message)
 {
     qCDebug(dcKaco()) << "--> Process inverter data...";
+
+    if (m_authorization != true) {
+        m_authorization = true;
+        emit authorizationChanged(true);
+    }
 
     QDataStream stream(message);
     stream.setByteOrder(QDataStream::LittleEndian);

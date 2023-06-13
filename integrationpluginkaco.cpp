@@ -106,6 +106,10 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
             thing->setStateValue(inverterFirmwareVersionStateTypeId, firmwareVersion);
         });
 
+        connect(client, &KacoClient::authorizationChanged, thing, [=](bool authorization){
+            thing->setStateValue(inverterAuthorizationStateTypeId, authorization);
+        });
+
         connect(client, &KacoClient::inverterPvPowerChanged, thing, [=](float inverterPvPower){
             thing->setStateValue(inverterCurrentPowerStateTypeId, -inverterPvPower);
         });
@@ -188,6 +192,34 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
                 meterThings.first()->setStateValue(meterTotalEnergyConsumedStateTypeId, client->meterGridEnergyConsumedTotal());
                 meterThings.first()->setStateValue(meterTotalEnergyProducedStateTypeId, client->meterGridEnergyReturnedTotal());
             }
+
+            // Battery. Use SoC value to detect if a battery is present.
+            float batterySoc = client->batteryPercentage();
+            if (batterySoc > 0.1) {
+                Things batteryThings = myThings().filterByParentId(thing->id()).filterByThingClassId(batteryThingClassId);
+
+                if (batteryThings.isEmpty()) {
+                    // No battery set up yet. Need to create it.
+                    qCDebug(dcKaco()) << "Setup new battery for" << thing;
+                    emit autoThingsAppeared(ThingDescriptors() << ThingDescriptor(batteryThingClassId, "Kaco Battery", QString(), thing->id()));
+                } else {
+                    batteryThings.first()->setStateValue(batteryBatteryLevelStateTypeId, batterySoc);
+                    batteryThings.first()->setStateValue(batteryBatteryCriticalStateTypeId, client->batteryPercentage() <= 10);
+
+                    float power = client->batteryPower();
+                    if (power < 1 && power > -1) {
+                        power = 0;
+                    }
+                    batteryThings.first()->setStateValue(batteryCurrentPowerStateTypeId, power);
+                    if (power > 1) {
+                        batteryThings.first()->setStateValue(batteryChargingStateStateTypeId, "charging");
+                    } else if (power < -1) {
+                        batteryThings.first()->setStateValue(batteryChargingStateStateTypeId, "discharging");
+                    } else {
+                        batteryThings.first()->setStateValue(batteryChargingStateStateTypeId, "idle");
+                    }
+                }
+            }
         });
 
         m_clients.insert(thing, client);
@@ -202,75 +234,34 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
             thing->setStateValue(meterConnectedStateTypeId, parentThing->stateValue(inverterConnectedStateTypeId).toBool());
         }
     } else if (thing->thingClassId() == batteryThingClassId) {
-        // Get the client for this battery
-        KacoClient *client = m_clients.value(myThings().findById(thing->parentId()));
-        if (!client) {
-            qCWarning(dcKaco()) << "Could not find kaco client for set up" << thing;
-            info->finish(Thing::ThingErrorHardwareNotAvailable);
-            return;
-        }
+        // Nothing to do here, we get all information from the inverter connection
+        info->finish(Thing::ThingErrorNoError);
 
-        connect(client, &KacoClient::valuesUpdated, thing, [=](){
-            // We received data, we are connected
-            thing->setStateValue(batteryConnectedStateTypeId, true);
+        // Set battery capacity from settings on restart.
+        thing->setStateValue(batteryCapacityStateTypeId, thing->setting(batterySettingsCapacityParamTypeId).toUInt());
 
-            thing->setStateValue(batteryBatteryLevelStateTypeId, client->batteryPercentage());
-            thing->setStateValue(batteryBatteryCriticalStateTypeId, client->batteryPercentage() <= 10);
-
-            // Capacity is still unknown, Lum might provide the information
-
-            float power = client->batteryPower();
-            if (power < 1 && power > -1) {
-                power = 0;
-            }
-            thing->setStateValue(batteryCurrentPowerStateTypeId, power);
-            if (power > 1) {
-                thing->setStateValue(batteryChargingStateStateTypeId, "charging");
-            } else if (power < -1) {
-                thing->setStateValue(batteryChargingStateStateTypeId, "discharging");
-            } else {
-                thing->setStateValue(batteryChargingStateStateTypeId, "idle");
+        // Set battery capacity on settings change.
+        connect(thing, &Thing::settingChanged, this, [this, thing] (const ParamTypeId &paramTypeId, const QVariant &value) {
+            if (paramTypeId == batterySettingsCapacityParamTypeId) {
+                qCDebug(dcKaco()) << "Battery capacity changed to" << value.toInt() << "kWh";
+                thing->setStateValue(batteryCapacityStateTypeId, value.toInt());
             }
         });
 
-        info->finish(Thing::ThingErrorNoError);
+        Thing *parentThing = myThings().findById(thing->parentId());
+        if (parentThing) {
+            thing->setStateValue(batteryConnectedStateTypeId, parentThing->stateValue(inverterConnectedStateTypeId).toBool());
+        }
     }
 }
 
 void IntegrationPluginKaco::postSetupThing(Thing *thing)
 {
     if (thing->thingClassId() == inverterThingClassId) {
-        // Check if we need to set up the child things, meter and storage
-        Things childThings = myThings().filterByParentId(thing->id());
-        ThingDescriptors descriptors;
-        if (childThings.filterByThingClassId(meterThingClassId).isEmpty()) {
-            // No meter set up yet for this inverter, lets create the child device
+        // Check if w have to set up a child meter for this inverter connection
+        if (myThings().filterByParentId(thing->id()).filterByThingClassId(meterThingClassId).isEmpty()) {
             qCDebug(dcKaco()) << "Setup new meter for" << thing;
-            descriptors.append(ThingDescriptor(meterThingClassId, "Kaco Energy Meter", QString(), thing->id()));
-        }
-
-        if (childThings.filterByThingClassId(batteryThingClassId).isEmpty()) {
-            // No battery set up yet for this inverter, lets create the child device
-            qCDebug(dcKaco()) << "Setup new battery for" << thing;
-            descriptors.append(ThingDescriptor(batteryThingClassId, "Kaco Battery", QString(), thing->id()));
-        }
-
-        if (!descriptors.isEmpty()) {
-            emit autoThingsAppeared(descriptors);
-        }
-    } else if (thing->thingClassId() == meterThingClassId) {
-        KacoClient *client = m_clients.value(myThings().findById(thing->parentId()));
-        if (client) {
-            // Set the initial connected state
-            thing->setStateValue(meterConnectedStateTypeId, client->connected());
-            return;
-        }
-    } else if (thing->thingClassId() == batteryThingClassId) {
-        KacoClient *client = m_clients.value(myThings().findById(thing->parentId()));
-        if (client) {
-            // Set the initial connected state
-            thing->setStateValue(batteryConnectedStateTypeId, client->connected());
-            return;
+            emit autoThingsAppeared(ThingDescriptors() << ThingDescriptor(meterThingClassId, "Kaco Energy Meter", QString(), thing->id()));
         }
     }
 }

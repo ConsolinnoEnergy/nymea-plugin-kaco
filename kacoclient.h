@@ -115,6 +115,7 @@ signals:
     void connectedChanged(bool connected);
     void stateChanged(State state);
     void firmwareVersionChanged(const QString &firmwareVersion);
+    void authorizationChanged(bool authorization);
 
     void serialNumberChanged(const QString &serialNumber);
 
@@ -205,6 +206,7 @@ private:
     quint32 m_clientId = 0;
     uint m_lastPicTimestamp = 0;
     bool m_communicationVer8x = true;
+    bool m_authorization = false;
 
     // Properties of data sets
     QStringList m_statusProperties;
