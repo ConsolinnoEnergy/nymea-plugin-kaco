@@ -177,7 +177,12 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
                 meterThings.first()->setStateValue(meterCurrentPowerPhaseAStateTypeId, client->meterPowerInternalPhaseA());
                 meterThings.first()->setStateValue(meterCurrentPowerPhaseBStateTypeId, client->meterPowerInternalPhaseB());
                 meterThings.first()->setStateValue(meterCurrentPowerPhaseCStateTypeId, client->meterPowerInternalPhaseC());
-                meterThings.first()->setStateValue(meterCurrentPowerStateTypeId, client->meterPowerInternalPhaseA() + client->meterPowerInternalPhaseB() + client->meterPowerInternalPhaseC());
+
+                double currentPower{client->meterPowerInternalPhaseA() + client->meterPowerInternalPhaseB() + client->meterPowerInternalPhaseC()};
+                if (currentPower < 5 && currentPower > -5) {    // Kill small leaking currents
+                    currentPower = 0;
+                }
+                meterThings.first()->setStateValue(meterCurrentPowerStateTypeId, currentPower);
                 meterThings.first()->setStateValue(meterVoltagePhaseAStateTypeId, client->meterVoltagePhaseA());
                 meterThings.first()->setStateValue(meterVoltagePhaseBStateTypeId, client->meterVoltagePhaseB());
                 meterThings.first()->setStateValue(meterVoltagePhaseCStateTypeId, client->meterVoltagePhaseC());
