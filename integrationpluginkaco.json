@@ -60,6 +60,15 @@
                             "cached": false
                         },
                         {
+                            "id": "1ed4cddf-e012-406f-bb2f-edc7f09b5cac",
+                            "name": "firmwareVersion",
+                            "displayName": "Firmware version",
+                            "displayNameEvent": "Firmware version received",
+                            "type": "QString",
+                            "defaultValue": "",
+                            "cached": false
+                        },
+                        {
                             "id": "51e03cd1-2593-45bf-9295-e5bf42402b35",
                             "name": "totalEnergyProduced",
                             "displayName": "Total energy produced",

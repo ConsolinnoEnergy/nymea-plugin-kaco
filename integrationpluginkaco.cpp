@@ -92,14 +92,18 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
         KacoClient *client = new KacoClient(hostAddress, port, "user", this);
         connect(client, &KacoClient::connectedChanged, thing, [=](bool connected){
             qCDebug(dcKaco()) << thing << "connected changed" << connected;
-            thing->setStateValue(inverterConnectedStateTypeId, connected);
+            if (thing->stateValue(inverterConnectedStateTypeId).toBool() != connected) {
+                thing->setStateValue(inverterConnectedStateTypeId, connected);
 
-            // TODO: authenticate before finish setup
-
-            // Update all child devices
-            foreach (Thing *thing, myThings().filterByParentId(thing->id())) {
-                thing->setStateValue("connected", connected);
+                // Update all child devices
+                foreach (Thing *thing, myThings().filterByParentId(thing->id())) {
+                    thing->setStateValue("connected", connected);
+                }
             }
+        });
+
+        connect(client, &KacoClient::firmwareVersionChanged, thing, [=](QString firmwareVersion){
+            thing->setStateValue(inverterFirmwareVersionStateTypeId, firmwareVersion);
         });
 
         connect(client, &KacoClient::inverterPvPowerChanged, thing, [=](float inverterPvPower){
@@ -162,7 +166,7 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
         });
 
 
-        // Meter. Since we need to summ up stuff, lets react on the valuesChanged signal
+        // Meter. Since we need to sum up stuff, lets react on the valuesChanged signal
         connect(client, &KacoClient::valuesUpdated, thing, [=](){
             Things meterThings = myThings().filterByParentId(thing->id()).filterByThingClassId(meterThingClassId);
             if (!meterThings.isEmpty()) {
@@ -216,10 +220,13 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
             // Capacity is still unknown, Lum might provide the information
 
             float power = client->batteryPower();
+            if (power < 1 && power > -1) {
+                power = 0;
+            }
             thing->setStateValue(batteryCurrentPowerStateTypeId, power);
-            if (power > 0) {
+            if (power > 1) {
                 thing->setStateValue(batteryChargingStateStateTypeId, "charging");
-            } else if (power < 0) {
+            } else if (power < -1) {
                 thing->setStateValue(batteryChargingStateStateTypeId, "discharging");
             } else {
                 thing->setStateValue(batteryChargingStateStateTypeId, "idle");

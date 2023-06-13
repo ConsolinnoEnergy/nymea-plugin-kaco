@@ -418,6 +418,7 @@ void KacoClient::resetData()
     m_userId = 0;
     m_mac.clear();
     m_serialNumber.clear();
+    m_firmwareVersion.clear();
     m_picRandomKey.clear();
     m_clientId = 0;
     m_lastPicTimestamp = 0;
@@ -504,10 +505,11 @@ void KacoClient::processResponse(const QByteArray &response)
     quint16 responseStart;
     stream >> responseStart;
 
-    if (responseStart != static_cast<quint16>(0xedde)) {
-        qCWarning(dcKaco()) << "Configured device is not a Kaco BH10." ;
-        return;
+    if (responseStart != static_cast<quint16>(0xdeed)) {    // 0xed 0xde is swapped in "responseStart".
+        qCWarning(dcKaco()) << "Configured device is not a Kaco BH10.";
+        qCWarning(dcKaco()) << "Start of message is" << byteArrayToHexString(response.left(2)) << ", expected \"0xed 0xde\".";
     }
+
     emit connectedChanged(true);
 
     quint8 messageType;
@@ -714,7 +716,14 @@ void KacoClient::processPicResponse(const QByteArray &message)
         } else {
             m_communicationVer8x = true;
         }
-        qCDebug(dcKaco()) << "- PIC version: " << QString("%1.%2").arg(m_picHighVersion).arg(m_picLowVersion);
+
+        QString firmwareVersion{QString("%1.%2").arg(m_picHighVersion).arg(m_picLowVersion)};
+        qCDebug(dcKaco()) << "- Inverter firmware version: " << firmwareVersion;
+        if (m_firmwareVersion != firmwareVersion) {
+            m_firmwareVersion = firmwareVersion;
+            emit firmwareVersionChanged(m_firmwareVersion);
+        }
+
     }
 
     if (message.count() >= 25) {
@@ -742,7 +751,7 @@ void KacoClient::processPicResponse(const QByteArray &message)
         if (m_communicationVer8x) {
             if (userId > 7) {
                 qCWarning(dcKaco()) << "- Error: Multiple devices try to accessed this inverter. Response invalid.";
-            } else {
+            } else if (userId > 0) {
                 if ((userId & 0b010) == 0b010) {
                     qCDebug(dcKaco()) << "- Access Status: Ident Key Accepted.";
                 } else {
