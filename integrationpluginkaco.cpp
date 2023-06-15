@@ -89,7 +89,8 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
 
         QHostAddress hostAddress = QHostAddress(thing->paramValue(inverterThingHostAddressParamTypeId).toString());
         quint16 port = thing->paramValue(inverterThingPortParamTypeId).toUInt();
-        KacoClient *client = new KacoClient(hostAddress, port, "user", this);
+        QString userKey = thing->paramValue(inverterThingUserKeyParamTypeId).toString();
+        KacoClient *client = new KacoClient(hostAddress, port, userKey, this);
         connect(client, &KacoClient::connectedChanged, thing, [=](bool connected){
             qCDebug(dcKaco()) << thing << "connected changed" << connected;
             if (thing->stateValue(inverterConnectedStateTypeId).toBool() != connected) {
@@ -158,8 +159,10 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
             thing->setStateValue(inverterResistanceIsolationStateTypeId, inverterResistanceIsolation);
         });
 
-        // Energy
+
+        // Some values require other values to calculate. React to the valuesChanged signal for there.
         connect(client, &KacoClient::valuesUpdated, thing, [=](){
+
             // Energy
             thing->setStateValue(inverterTotalEnergyProducedStateTypeId, client->meterInverterEnergyReturnedTotal());
 
@@ -167,13 +170,10 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
             thing->setStateValue(inverterFeedBatteryMonthStateTypeId, client->meterAhBatteryMonth() * client->batteryVoltage() / 1000.0);
             thing->setStateValue(inverterFeedBatteryTotalStateTypeId, client->meterAhBatteryTotal() * client->batteryVoltage() / 1000.0);
 
-        });
-
-
-        // Meter. Since we need to sum up stuff, lets react on the valuesChanged signal
-        connect(client, &KacoClient::valuesUpdated, thing, [=](){
+            // Meter.
             Things meterThings = myThings().filterByParentId(thing->id()).filterByThingClassId(meterThingClassId);
             if (!meterThings.isEmpty()) {
+
                 meterThings.first()->setStateValue(meterCurrentPowerPhaseAStateTypeId, client->meterPowerInternalPhaseA());
                 meterThings.first()->setStateValue(meterCurrentPowerPhaseBStateTypeId, client->meterPowerInternalPhaseB());
                 meterThings.first()->setStateValue(meterCurrentPowerPhaseCStateTypeId, client->meterPowerInternalPhaseC());
@@ -183,6 +183,7 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
                     currentPower = 0;
                 }
                 meterThings.first()->setStateValue(meterCurrentPowerStateTypeId, currentPower);
+
                 meterThings.first()->setStateValue(meterVoltagePhaseAStateTypeId, client->meterVoltagePhaseA());
                 meterThings.first()->setStateValue(meterVoltagePhaseBStateTypeId, client->meterVoltagePhaseB());
                 meterThings.first()->setStateValue(meterVoltagePhaseCStateTypeId, client->meterVoltagePhaseC());

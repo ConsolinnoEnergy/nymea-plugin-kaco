@@ -641,9 +641,7 @@ QByteArray KacoClient::updateIdentKey(const QByteArray &randomKey)
     if (m_identKey.size() < 1) {
 
         // Read ident key file. Directory and filename are specified here.
-        QString homePath = QDir::homePath();
-        QString relativeFolder = "kaco";
-        QDir fileFolder(homePath + "/" + relativeFolder);
+        QDir fileFolder("/root/kaco");
         if (!fileFolder.exists()) {
             qCWarning(dcKaco()) << "Ident key file should be in directory " + fileFolder.path() + "/, but that directory does not exist.";
             return randomKey;
