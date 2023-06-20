@@ -28,26 +28,26 @@
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#include "integrationpluginkaco.h"
+#include "integrationpluginkacobh10.h"
 #include "plugininfo.h"
 
 #include <network/networkdevicediscovery.h>
 
-IntegrationPluginKaco::IntegrationPluginKaco()
+IntegrationPluginKacoBh10::IntegrationPluginKacoBh10()
 {
 
 }
 
-void IntegrationPluginKaco::init()
+void IntegrationPluginKacoBh10::init()
 {
 
 }
 
-void IntegrationPluginKaco::discoverThings(ThingDiscoveryInfo *info)
+void IntegrationPluginKacoBh10::discoverThings(ThingDiscoveryInfo *info)
 {
     KacoDiscovery *discovery = new KacoDiscovery(this);
     connect(discovery, &KacoDiscovery::discoveryFinished, this, [=](){
-        qCDebug(dcKaco()) << "Discovery finished. Found" << discovery->result().count() << "inverters.";
+        qCDebug(dcKacoBh10()) << "Discovery finished. Found" << discovery->result().count() << "inverters.";
         foreach (const KacoDiscovery::KacoDicoveryResult &result, discovery->result()) {
             QString title = "Kaco Inverter";
             QString description = "Serial: " + result.serialNumber + " (" + result.hostAddress.toString() + ")";
@@ -56,7 +56,7 @@ void IntegrationPluginKaco::discoverThings(ThingDiscoveryInfo *info)
             // Check if we already have set up this device
             Things existingThings = myThings().filterByParam(inverterThingSerialNumberParamTypeId, result.serialNumber);
             if (existingThings.count() == 1) {
-                qCDebug(dcKaco()) << "This thing already exists in the system." << existingThings.first() << result.serialNumber;
+                qCDebug(dcKacoBh10()) << "This thing already exists in the system." << existingThings.first() << result.serialNumber;
                 descriptor.setThingId(existingThings.first()->id());
             }
 
@@ -76,14 +76,14 @@ void IntegrationPluginKaco::discoverThings(ThingDiscoveryInfo *info)
     discovery->startDiscovery();
 }
 
-void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
+void IntegrationPluginKacoBh10::setupThing(ThingSetupInfo *info)
 {
     Thing *thing = info->thing();
-    qCDebug(dcKaco()) << "Setup" << thing << thing->params();
+    qCDebug(dcKacoBh10()) << "Setup" << thing << thing->params();
 
     if (thing->thingClassId() == inverterThingClassId) {
         if (m_clients.contains(info->thing())) {
-            qCDebug(dcKaco()) << "Clean up client for" << thing;
+            qCDebug(dcKacoBh10()) << "Clean up client for" << thing;
             delete m_clients.take(thing);
         }
 
@@ -92,7 +92,7 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
         QString userKey = thing->paramValue(inverterThingUserKeyParamTypeId).toString();
         KacoClient *client = new KacoClient(hostAddress, port, userKey, this);
         connect(client, &KacoClient::connectedChanged, thing, [=](bool connected){
-            qCDebug(dcKaco()) << thing << "connected changed" << connected;
+            qCDebug(dcKacoBh10()) << thing << "connected changed" << connected;
             if (thing->stateValue(inverterConnectedStateTypeId).toBool() != connected) {
                 thing->setStateValue(inverterConnectedStateTypeId, connected);
 
@@ -206,7 +206,7 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
 
                 if (batteryThings.isEmpty()) {
                     // No battery set up yet. Need to create it.
-                    qCDebug(dcKaco()) << "Setup new battery for" << thing;
+                    qCDebug(dcKacoBh10()) << "Setup new battery for" << thing;
                     emit autoThingsAppeared(ThingDescriptors() << ThingDescriptor(batteryThingClassId, "Kaco Battery", QString(), thing->id()));
                 } else {
                     batteryThings.first()->setStateValue(batteryBatteryLevelStateTypeId, batterySoc);
@@ -249,7 +249,7 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
         // Set battery capacity on settings change.
         connect(thing, &Thing::settingChanged, this, [this, thing] (const ParamTypeId &paramTypeId, const QVariant &value) {
             if (paramTypeId == batterySettingsCapacityParamTypeId) {
-                qCDebug(dcKaco()) << "Battery capacity changed to" << value.toInt() << "kWh";
+                qCDebug(dcKacoBh10()) << "Battery capacity changed to" << value.toInt() << "kWh";
                 thing->setStateValue(batteryCapacityStateTypeId, value.toInt());
             }
         });
@@ -261,23 +261,23 @@ void IntegrationPluginKaco::setupThing(ThingSetupInfo *info)
     }
 }
 
-void IntegrationPluginKaco::postSetupThing(Thing *thing)
+void IntegrationPluginKacoBh10::postSetupThing(Thing *thing)
 {
     if (thing->thingClassId() == inverterThingClassId) {
         // Check if w have to set up a child meter for this inverter connection
         if (myThings().filterByParentId(thing->id()).filterByThingClassId(meterThingClassId).isEmpty()) {
-            qCDebug(dcKaco()) << "Setup new meter for" << thing;
+            qCDebug(dcKacoBh10()) << "Setup new meter for" << thing;
             emit autoThingsAppeared(ThingDescriptors() << ThingDescriptor(meterThingClassId, "Kaco Energy Meter", QString(), thing->id()));
         }
     }
 }
 
-void IntegrationPluginKaco::executeAction(ThingActionInfo *info)
+void IntegrationPluginKacoBh10::executeAction(ThingActionInfo *info)
 {
     info->finish(Thing::ThingErrorNoError);
 }
 
-void IntegrationPluginKaco::thingRemoved(Thing *thing)
+void IntegrationPluginKacoBh10::thingRemoved(Thing *thing)
 {
     if (m_clients.contains(thing))
         m_clients.take(thing)->deleteLater();
