@@ -1,4 +1,4 @@
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+﻿/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
 * Copyright 2013 - 2021, nymea GmbH
 * Contact: contact@nymea.io
@@ -33,6 +33,12 @@
 
 #include <QCryptographicHash>
 #include <QDataStream>
+#include <QFile>
+#include <QTextStream>
+#include <QDir>
+#include <QFileInfo>
+#include <iterator>
+#include <sstream>
 
 #include "math.h"
 
@@ -108,7 +114,7 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
 
     // Show for debugging
     //    foreach (const QString &property, m_propertyHashes.values())
-    //        qCDebug(dcKaco()) << "-->" << property << m_propertyHashes.key(property);
+    //        qCDebug(dcKacoBh10()) << "-->" << property << m_propertyHashes.key(property);
 
     // Get the hash of the password
     m_userPasswordHash = calculateStringHashCode(m_userPassword);
@@ -121,8 +127,8 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
     // TCP socket
     m_socket = new QTcpSocket(this);
     connect(m_socket, &QTcpSocket::connected, this, [=](){
-        qCDebug(dcKaco()) << "Connected to" << QString("%1:%2").arg(m_hostAddress.toString()).arg(m_port);
-        emit connectedChanged(true);
+        qCDebug(dcKacoBh10()) << "Connected to" << QString("%1:%2").arg(m_hostAddress.toString()).arg(m_port);
+        //emit connectedChanged(true); Emit connected only when the device is actually answering.
         setState(StateAuthenticate);
         resetData();
 
@@ -131,7 +137,7 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
     });
 
     connect(m_socket, &QTcpSocket::disconnected, this, [=](){
-        qCDebug(dcKaco()) << "Disconnected from" << QString("%1:%2").arg(m_hostAddress.toString()).arg(m_port) << m_socket->errorString();
+        qCDebug(dcKacoBh10()) << "Disconnected from" << QString("%1:%2").arg(m_hostAddress.toString()).arg(m_port) << m_socket->errorString();
         m_refreshTimer.stop();
         resetData();
         setState(StateNone);
@@ -141,13 +147,13 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
 
     connect(m_socket, &QTcpSocket::readyRead, this, [=](){
         QByteArray data = m_socket->readAll();
-        qCDebug(dcKaco()) << "Data from" << QString("%1:%2").arg(m_hostAddress.toString()).arg(m_port);
-        qCDebug(dcKaco()) << "<--" << qUtf8Printable(data.toHex()) << "(count:" << data.count() << ")";
+        qCDebug(dcKacoBh10()) << "Data from" << QString("%1:%2").arg(m_hostAddress.toString()).arg(m_port);
+        qCDebug(dcKacoBh10()) << "<--" << qUtf8Printable(data.toHex()) << "(count:" << data.count() << ")";
         processResponse(data);
     });
 
     connect(m_socket, &QTcpSocket::stateChanged, this, [=](QAbstractSocket::SocketState socketState){
-        qCDebug(dcKaco()) << "Socket state changed" << QString("%1:%2").arg(m_hostAddress.toString()).arg(m_port) << socketState;
+        qCDebug(dcKacoBh10()) << "Socket state changed" << QString("%1:%2").arg(m_hostAddress.toString()).arg(m_port) << socketState;
     });
 }
 
@@ -412,9 +418,12 @@ void KacoClient::resetData()
     m_userId = 0;
     m_mac.clear();
     m_serialNumber.clear();
+    m_firmwareVersion.clear();
     m_picRandomKey.clear();
     m_clientId = 0;
     m_lastPicTimestamp = 0;
+    m_authorization = false;
+    emit authorizationChanged(false);
 
     // Properties
 
@@ -479,7 +488,7 @@ bool KacoClient::sendData(const QByteArray &data)
     // We sent something, we are waiting for something
     m_requestPending = true;
 
-    qCDebug(dcKaco()) << "-->" << qUtf8Printable(data.toHex()) << "(count:" << data.count() << ")";
+    qCDebug(dcKacoBh10()) << "-->" << qUtf8Printable(data.toHex()) << "(count:" << data.count() << ")";
     int writtenBytes = m_socket->write(data);
     return (writtenBytes == data.count());
 }
@@ -498,6 +507,13 @@ void KacoClient::processResponse(const QByteArray &response)
     quint16 responseStart;
     stream >> responseStart;
 
+    if (responseStart != static_cast<quint16>(0xdeed)) {    // 0xed 0xde is swapped in "responseStart".
+        qCWarning(dcKacoBh10()) << "Configured device is not a Kaco BH10.";
+        qCWarning(dcKacoBh10()) << "Start of message is" << byteArrayToHexString(response.left(2)) << ", expected \"0xed 0xde\".";
+    }
+
+    emit connectedChanged(true);
+
     quint8 messageType;
     stream >> messageType;
 
@@ -511,12 +527,12 @@ void KacoClient::processResponse(const QByteArray &response)
             processInverterResponse(response);
             break;
         default:
-            qCWarning(dcKaco()) << "Received ids response but we are currently in" << m_state << "and not expecting any data.";
+            qCWarning(dcKacoBh10()) << "Received ids response but we are currently in" << m_state << "and not expecting any data.";
             break;
         }
         break;
     default:
-        qCDebug(dcKaco()) << "Unhandled message type" << byteToHexString(messageType) << messageType;
+        qCDebug(dcKacoBh10()) << "Unhandled message type" << byteToHexString(messageType) << messageType;
         break;
     }
 }
@@ -538,7 +554,7 @@ void KacoClient::sendPicRequest()
     // Request:  55aa 30 0b00 06050000 aefdd5020c77 1950f3a4 01
     // Response: edde 30 3900 c30b0000 0200234b 05 09 06001ab168 271939269c02001dcf0102140025a13230313231303234353537382020202020202020 42db89d3c065 02 00000100
 
-    qCDebug(dcKaco()) << "Sending PIC request...";
+    qCDebug(dcKacoBh10()) << "Sending PIC request...";
 
     QByteArray payload;
     QDataStream stream(&payload, QIODevice::ReadWrite);
@@ -547,74 +563,178 @@ void KacoClient::sendPicRequest()
     // 0 - 5: Random key bytes 6 bytes
     // 6 - 9: user key 4 bytes (will be encrypted later if not the first message)
     QByteArray newRandomBytes = generateRandomBytes(10);
-    //qCDebug(dcKaco()) << "Fill in random bytes" << byteArrayToHexString(newRandomBytes);
+    //qCDebug(dcKacoBh10()) << "Fill in random bytes" << byteArrayToHexString(newRandomBytes);
     for (int i = 0; i < newRandomBytes.size(); i++)
         stream << static_cast<quint8>(newRandomBytes.at(i));
 
     // 10: userId
-    stream << m_userId;
+    //stream << m_userId;
+    stream << static_cast<quint8>(0x00);
 
-    // If we already received a random pic key from the server,
-    // lets send the actual key encrypted using black magic
+    // m_userId is 0 on startup and changes to 2 on the first received response. Here, it acts as a "have we received anything yet?" test.
     if (m_userId != 0) {
-        QByteArray keyBuffer(4, '0');
-        keyBuffer[0] = m_userPasswordHash & 0xff;
-        keyBuffer[1] = (m_userPasswordHash >> 8) & 0xff;
-        keyBuffer[2] = (m_userPasswordHash >> 16) & 0xff;
-        keyBuffer[3] = (m_userPasswordHash >> 24) & 0xff;
+        if (m_communicationVer8x) {
 
-        // Do some black magic with the key using servers the random bytes
+            if (m_mac.size() > 0) {
+                shuffleBytes(m_mac, 0, 6, m_picRandomKey, payload, 0, 99);
+            } else {
+                qCWarning(dcKacoBh10()) << "No mac received, cannot send PIC request.";
+                return;
+            }
 
-        //qCDebug(dcKaco()) << "key buffer start" << byteArrayToHexString(keyBuffer);
-        //qCDebug(dcKaco()) << "Using pic response random bytes" << byteArrayToHexString(m_picRandomKey);
+            payload[6] = m_userPasswordHash & 0xff;
+            payload[7] = (m_userPasswordHash >> 8) & 0xff;
+            payload[8] = (m_userPasswordHash >> 16) & 0xff;
+            payload[9] = (m_userPasswordHash >> 24) & 0xff;
+            shuffleBytes(payload, 6, 4, m_picRandomKey, payload, 6, 2);
+            QByteArray tmp = updateIdentKey(m_picRandomKey);
+            for (int i = 0; i < tmp.size(); i++)
+                stream << static_cast<quint8>(tmp.at(i));
 
-        quint8 keyLength = keyBuffer.size();
-        for (quint8 i = 0; i < keyLength && i < m_picRandomKey.size(); i++)
-            keyBuffer[i] = keyBuffer.at(i) + m_picRandomKey.at(i);
-
-        //qCDebug(dcKaco()) << "key buffer adding random bytes" << byteArrayToHexString(keyBuffer);
-        quint8 iterations = 2;
-        for (quint8 i = 0; i < iterations; i++) {
-            keyBuffer[i % keyLength] = keyBuffer.at(i % keyLength) + 1;
-            keyBuffer[i % keyLength] = keyBuffer.at(i % keyLength) + keyBuffer.at((i + 10) % keyLength);
-            keyBuffer[(i + 3) % keyLength] = keyBuffer.at((i + 3) % keyLength) * keyBuffer.at((i + 11) % keyLength);
-            keyBuffer[i % keyLength] = keyBuffer.at(i % keyLength) + keyBuffer.at((i + 7) % keyLength);
-            //qCDebug(dcKaco()) << "key buffer after iteration" << i << byteArrayToHexString(keyBuffer);
+        } else {
+            // If we already received a random pic key from the server,
+            // lets send the actual key encrypted using black magic
+            payload[6] = m_userPasswordHash & 0xff;
+            payload[7] = (m_userPasswordHash >> 8) & 0xff;
+            payload[8] = (m_userPasswordHash >> 16) & 0xff;
+            payload[9] = (m_userPasswordHash >> 24) & 0xff;
+            shuffleBytes(payload, 6, 4, m_picRandomKey, payload, 6, 2);
+            payload[10] = m_userId & 0xff;
         }
-
-        //qCDebug(dcKaco()) << "key buffer end  " << byteArrayToHexString(keyBuffer);
-        payload[6] = keyBuffer.at(0);
-        payload[7] = keyBuffer.at(1);
-        payload[8] = keyBuffer.at(2);
-        payload[9] = keyBuffer.at(3);
     }
 
     sendData(buildPackage(MessageTypePic, payload));
 }
 
+void KacoClient::shuffleBytes(const QByteArray &src, int spos, int len, const QByteArray &key, QByteArray &dest, int dpos, int k)
+{
+    QByteArray tmp;
+    tmp.resize(len);
+    if (src.size() < spos + len) {
+        qCWarning(dcKacoBh10()) << "Source array out of bounds.";
+        return;
+    }
+    for (int i{0}; i < len; i++)
+        tmp[i] = src.at(spos + i);
+
+    for (int i{0}; i < len && i < key.size(); i++)
+        tmp[i] = tmp.at(i) + key.at(i);
+
+    for (int i{0}; i < k; i++) {
+        tmp[i % len] = tmp.at(i % len) + 1;
+        tmp[i % len] = tmp.at(i % len) + tmp.at((i + 10) % len);
+        tmp[(i + 3) % len] = tmp.at((i + 3) % len) * tmp.at((i + 11) % len);
+        tmp[i % len] = tmp.at(i % len) + tmp.at((i + 7) % len);
+    }
+
+    if (dest.size() < dpos + len) {
+        qCWarning(dcKacoBh10()) << "Destination array out of bounds.";
+        return;
+    }
+    for (int i{0}; i < len; i++)
+        dest[dpos + i] = tmp.at(i);
+}
+
+QByteArray KacoClient::updateIdentKey(const QByteArray &randomKey)
+{
+    // Load ident key if it is not loaded already.
+    if (m_identKey.size() < 1) {
+
+        // Read ident key file. Directory and filename are specified here.
+        QDir fileFolder("/root/kaco");
+        if (!fileFolder.exists()) {
+            qCWarning(dcKacoBh10()) << "Ident key file should be in directory " + fileFolder.path() + "/, but that directory does not exist.";
+            return randomKey;
+        }
+
+        QString fileName = "ident.key";
+        QString filePath = fileFolder.path() + "/" + fileName;
+        bool fileExists = QFileInfo::exists(filePath) && QFileInfo(filePath).isFile();
+        if (!fileExists) {
+            qCWarning(dcKacoBh10()) << "Ident key file " + fileName + " should be in directory " + fileFolder.path() + "/, but that file does not exist.";
+            return randomKey;
+        }
+
+        QFile file(filePath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            qCWarning(dcKacoBh10()) << "Could not open ident key file " + fileName + " in directory " + fileFolder.path() + "/";
+            return randomKey;
+        }
+
+        QTextStream in(&file);
+        QString identKeyString = in.readLine();
+        file.close();
+        qCDebug(dcKacoBh10()) << "Contents of ident key file " + fileName + " in directory " + fileFolder.path() + "/ read: " + identKeyString;
+
+        // Check contents of ident key file and transform to a byte array.
+        int stringLength = identKeyString.length();
+        std::stringstream ss;
+        if (stringLength % 2) {
+            qCWarning(dcKacoBh10()) << "Ident key file " + fileName + " in directory " + fileFolder.path() + "/ seems to be invalid.";
+            return randomKey;
+        }
+
+        for (const auto &item : qAsConst(identKeyString)) {
+            if (item.isLetterOrNumber()) {
+                ss << item.toLatin1();
+            } else {
+                qCWarning(dcKacoBh10()) << "Ident key file " + fileName + " in directory " + fileFolder.path() + "/ seems to be invalid.";
+                return randomKey;
+            }
+        }
+        std::string stringConversion = ss.str();
+        int byteCount = stringLength / 2;
+        m_identKey.resize(byteCount);
+        std::string substring;
+        for (int i{0}; i < byteCount; ++i) {
+            substring = stringConversion.substr(i * 2, 2);
+            m_identKey[i] = std::stoul(substring, nullptr, 16); // Convert a hex number string to number.
+        }
+    }
+
+    quint8 len = 8;
+    QByteArray tmp;
+    tmp.resize(len);
+    shuffleBytes(m_identKey, 0, len, randomKey, tmp, 0, 99);
+
+    return tmp;
+}
+
 void KacoClient::processPicResponse(const QByteArray &message)
 {
-    qCDebug(dcKaco()) << "Process PIC data...";
+    qCDebug(dcKacoBh10()) << "Process PIC data...";
     if (message.count() >= 15) {
         m_picHighVersion = message.at(13);
         m_picLowVersion = message.at(14);
         if (m_picHighVersion < 2 && message.count() < 62) {
             // User type 1 ?
             m_userType = 1;
-            qCDebug(dcKaco()) << "- User type:" << m_userType;
+            qCDebug(dcKacoBh10()) << "- User type:" << m_userType;
         }
-        qCDebug(dcKaco()) << "- PIC version: " << QString("%1.%2").arg(m_picHighVersion).arg(m_picLowVersion);
+        if (m_picHighVersion < 8) {
+            m_communicationVer8x = false;
+        } else {
+            m_communicationVer8x = true;
+        }
+
+        QString firmwareVersion{QString("%1.%2").arg(m_picHighVersion).arg(m_picLowVersion)};
+        qCDebug(dcKacoBh10()) << "- Inverter firmware version: " << firmwareVersion;
+        if (m_firmwareVersion != firmwareVersion) {
+            m_firmwareVersion = firmwareVersion;
+            emit firmwareVersionChanged(m_firmwareVersion);
+        }
+
     }
 
     if (message.count() >= 25) {
         m_mac = message.mid(19, 6);
-        qCDebug(dcKaco()) << "- MAC:" << m_mac.toHex();
+        qCDebug(dcKacoBh10()) << "- MAC:" << m_mac.toHex();
     }
 
     if (message.count() >= 55) {
         QString serialNumber = QString::fromUtf8(message.mid(35, 20)).trimmed();
         // 68271939269c SN: 201210245578
-        qCDebug(dcKaco()) << "- Serial number:" << m_serialNumber;
+        qCDebug(dcKacoBh10()) << "- Serial number:" << m_serialNumber;
         if (m_serialNumber != serialNumber) {
             m_serialNumber = serialNumber;
             emit serialNumberChanged(m_serialNumber);
@@ -623,12 +743,30 @@ void KacoClient::processPicResponse(const QByteArray &message)
 
     if (message.count() >= 61) {
         m_picRandomKey = message.mid(55, 6);
-        qCDebug(dcKaco()) << "- Random key:" << byteArrayToHexString(m_picRandomKey);
+        qCDebug(dcKacoBh10()) << "- Random key:" << byteArrayToHexString(m_picRandomKey);
     }
 
     if (message.count() >= 62) {
         quint8 userId = message.at(61);
-        qCDebug(dcKaco()) << "- User ID:" << byteToHexString(userId) << userId;
+        if (m_communicationVer8x) {
+            if (userId > 7) {
+                qCWarning(dcKacoBh10()) << "- Error: Multiple devices try to accessed this inverter. Response invalid.";
+            } else if (userId > 0) {
+                if ((userId & 0b010) == 0b010) {
+                    qCDebug(dcKacoBh10()) << "- Access Status: Ident Key Accepted.";
+                } else {
+                    qCWarning(dcKacoBh10()) << "- Access Status: Ident Key Reject.";
+                }
+                if ((userId & 0b0100) == 0b0100) {
+                    qCDebug(dcKacoBh10()) << "- Access Status: User Key Accepted.";
+                } else {
+                    qCWarning(dcKacoBh10()) << "- Access Status: User Key Reject.";
+                }
+            }
+        } else {
+            qCDebug(dcKacoBh10()) << "- User ID:" << byteToHexString(userId) << userId;
+        }
+
     }
 
     if (message.count() >= 66) {
@@ -636,7 +774,7 @@ void KacoClient::processPicResponse(const QByteArray &message)
         QDataStream clientIdStream(&clientId, QIODevice::ReadOnly);
         clientIdStream.setByteOrder(QDataStream::LittleEndian);
         clientIdStream >> m_clientId;
-        qCDebug(dcKaco()) << "- Client ID:" << byteArrayToHexString(clientId) << m_clientId;
+        qCDebug(dcKacoBh10()) << "- Client ID:" << byteArrayToHexString(clientId) << m_clientId;
     }
 
     m_lastPicTimestamp = QDateTime::currentDateTime().toMSecsSinceEpoch() / 1000;
@@ -693,7 +831,12 @@ void KacoClient::sendInverterRequest()
 
 void KacoClient::processInverterResponse(const QByteArray &message)
 {
-    qCDebug(dcKaco()) << "--> Process inverter data...";
+    qCDebug(dcKacoBh10()) << "--> Process inverter data...";
+
+    if (m_authorization != true) {
+        m_authorization = true;
+        emit authorizationChanged(true);
+    }
 
     QDataStream stream(message);
     stream.setByteOrder(QDataStream::LittleEndian);
@@ -710,10 +853,10 @@ void KacoClient::processInverterResponse(const QByteArray &message)
     quint32 checksum;
     stream >> checksum;
 
-    qCDebug(dcKaco()) << "Message start:" << responseStart << byteArrayToHexString(message.left(2));
-    qCDebug(dcKaco()) << "Message type:" << static_cast<MessageType>(messageType) << byteToHexString(messageType);
-    qCDebug(dcKaco()) << "Message size:" << messageSize << byteArrayToHexString(message.mid(3,2));
-    qCDebug(dcKaco()) << "Message checksum:" << calculateChecksum(message.mid(9, message.length() - 9)) << "=" << checksum;
+    qCDebug(dcKacoBh10()) << "Message start:" << responseStart << byteArrayToHexString(message.left(2));
+    qCDebug(dcKacoBh10()) << "Message type:" << static_cast<MessageType>(messageType) << byteToHexString(messageType);
+    qCDebug(dcKacoBh10()) << "Message size:" << messageSize << byteArrayToHexString(message.mid(3,2));
+    qCDebug(dcKacoBh10()) << "Message checksum:" << calculateChecksum(message.mid(9, message.length() - 9)) << "=" << checksum;
 
     // Parse params
     //  55aa 34 2800 1e130000 aa3a 057a 718d 256b 3454 c27c 2255 c5a0 4878 6778 8678 5c7c 7b7c 9a7c 4b3c bcca dbca 5396 b0e4 4991
@@ -755,7 +898,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
     while (!stream.atEnd()) {
         // Read the next param size and hash
         stream >> paramSize >> paramHash;
-        //qCDebug(dcKaco()) << "--> Read parameter" << paramHash << "size" << paramSize;
+        //qCDebug(dcKacoBh10()) << "--> Read parameter" << paramHash << "size" << paramSize;
 
         // Meter ----------------------------------------
 
@@ -764,7 +907,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // Meter feed in inverter
             stream >> paramValueRaw;
             float meterInverterEnergyReturnedToday = convertEnergyToFloat(paramValueRaw, 16, 240000.0) / 1000.0;
-            qCDebug(dcKaco()) << "Meter inverter feed in today" << meterInverterEnergyReturnedToday << "kWh";
+            qCDebug(dcKacoBh10()) << "Meter inverter feed in today" << meterInverterEnergyReturnedToday << "kWh";
             if (!qFuzzyCompare(m_meterInverterEnergyReturnedToday, meterInverterEnergyReturnedToday)) {
                 m_meterInverterEnergyReturnedToday = meterInverterEnergyReturnedToday;
                 emit meterInverterEnergyReturnedTodayChanged(m_meterInverterEnergyReturnedToday);
@@ -772,7 +915,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterInverterEnergyReturnedMonth = convertEnergyToFloat(paramValueRaw, 16, 7200000.0) / 1000.0;
-            qCDebug(dcKaco()) << "Meter inverter feed in this month" << meterInverterEnergyReturnedMonth << "kWh";
+            qCDebug(dcKacoBh10()) << "Meter inverter feed in this month" << meterInverterEnergyReturnedMonth << "kWh";
             if (!qFuzzyCompare(m_meterInverterEnergyReturnedMonth, meterInverterEnergyReturnedMonth)) {
                 m_meterInverterEnergyReturnedMonth = meterInverterEnergyReturnedMonth;
                 emit meterInverterEnergyReturnedMonthChanged(m_meterInverterEnergyReturnedMonth);
@@ -780,7 +923,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterInverterEnergyReturnedTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
-            qCDebug(dcKaco()) << "Meter inverter feed in total" << meterInverterEnergyReturnedTotal << "kWh";
+            qCDebug(dcKacoBh10()) << "Meter inverter feed in total" << meterInverterEnergyReturnedTotal << "kWh";
             if (!qFuzzyCompare(m_meterInverterEnergyReturnedTotal, meterInverterEnergyReturnedTotal)) {
                 m_meterInverterEnergyReturnedTotal = meterInverterEnergyReturnedTotal;
                 emit meterInverterEnergyReturnedTotalChanged(m_meterInverterEnergyReturnedTotal);
@@ -791,7 +934,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // Meter consumed inverter
             stream >> paramValueRaw;
             float meterInverterEnergyConsumedToday = convertEnergyToFloat(paramValueRaw, 16, 240000.0)/ 1000.0;
-            qCDebug(dcKaco()) << "Meter inverter consumed today" << meterInverterEnergyConsumedToday << "kWh";
+            qCDebug(dcKacoBh10()) << "Meter inverter consumed today" << meterInverterEnergyConsumedToday << "kWh";
             if (!qFuzzyCompare(m_meterInverterEnergyConsumedToday, meterInverterEnergyConsumedToday)) {
                 m_meterInverterEnergyConsumedToday = meterInverterEnergyConsumedToday;
                 emit meterInverterEnergyConsumedTodayChanged(m_meterInverterEnergyConsumedToday);
@@ -799,7 +942,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterInverterEnergyConsumedMonth = convertEnergyToFloat(paramValueRaw, 16, 7200000.0) / 1000.0;
-            qCDebug(dcKaco()) << "Meter inverter consumed this month" << meterInverterEnergyConsumedMonth << "kWh";
+            qCDebug(dcKacoBh10()) << "Meter inverter consumed this month" << meterInverterEnergyConsumedMonth << "kWh";
             if (!qFuzzyCompare(m_meterInverterEnergyConsumedMonth, meterInverterEnergyConsumedMonth)) {
                 m_meterInverterEnergyConsumedMonth = meterInverterEnergyConsumedMonth;
                 emit meterInverterEnergyConsumedMonthChanged(m_meterInverterEnergyConsumedMonth);
@@ -807,7 +950,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterInverterEnergyConsumedTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
-            qCDebug(dcKaco()) << "Meter inverter consumed total" << meterInverterEnergyConsumedTotal << "kWh";
+            qCDebug(dcKacoBh10()) << "Meter inverter consumed total" << meterInverterEnergyConsumedTotal << "kWh";
             if (!qFuzzyCompare(m_meterInverterEnergyConsumedTotal, meterInverterEnergyConsumedTotal)) {
                 m_meterInverterEnergyConsumedTotal = meterInverterEnergyConsumedTotal;
                 emit meterInverterEnergyConsumedTotalChanged(m_meterInverterEnergyConsumedTotal);
@@ -818,7 +961,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // Meter grid feed in
             stream >> paramValueRaw;
             float meterGridEnergyReturnedToday = convertEnergyToFloat(paramValueRaw, 16, 2400000.0) / 1000.0;
-            qCDebug(dcKaco()) << "Meter grid feed in today" << meterGridEnergyReturnedToday << "kWh";
+            qCDebug(dcKacoBh10()) << "Meter grid feed in today" << meterGridEnergyReturnedToday << "kWh";
             if (!qFuzzyCompare(m_meterGridEnergyReturnedToday, meterGridEnergyReturnedToday)) {
                 m_meterGridEnergyReturnedToday = meterGridEnergyReturnedToday;
                 emit meterGridEnergyReturnedTodayChanged(m_meterGridEnergyReturnedToday);
@@ -826,7 +969,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterGridEnergyReturnedMonth = convertEnergyToFloat(paramValueRaw, 16, 7.2E7) / 1000.0;
-            qCDebug(dcKaco()) << "Meter grid feed in this month" << meterGridEnergyReturnedMonth << "kWh";
+            qCDebug(dcKacoBh10()) << "Meter grid feed in this month" << meterGridEnergyReturnedMonth << "kWh";
             if (!qFuzzyCompare(m_meterGridEnergyReturnedMonth, meterGridEnergyReturnedMonth)) {
                 m_meterGridEnergyReturnedMonth = meterGridEnergyReturnedMonth;
                 emit meterGridEnergyReturnedMonthChanged(m_meterGridEnergyReturnedMonth);
@@ -835,7 +978,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             stream >> paramValueRaw;
             // Note: for some reason this value was wrong by factor 10
             float meterGridEnergyReturnedTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 100.0;
-            qCDebug(dcKaco()) << "Meter grid feed in total" << meterGridEnergyReturnedTotal << "kWh";
+            qCDebug(dcKacoBh10()) << "Meter grid feed in total" << meterGridEnergyReturnedTotal << "kWh";
             if (!qFuzzyCompare(m_meterGridEnergyReturnedTotal, meterGridEnergyReturnedTotal)) {
                 m_meterGridEnergyReturnedTotal = meterGridEnergyReturnedTotal;
                 emit meterGridEnergyReturnedTotalChanged(m_meterGridEnergyReturnedTotal);
@@ -846,7 +989,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // Meter consumed grid
             stream >> paramValueRaw;
             float meterGridEnergyConsumedToday = convertEnergyToFloat(paramValueRaw, 16, 2400000.0) / 1000.0;
-            qCDebug(dcKaco()) << "Meter grid consumed today" << meterGridEnergyConsumedToday << "kWh";
+            qCDebug(dcKacoBh10()) << "Meter grid consumed today" << meterGridEnergyConsumedToday << "kWh";
             if (!qFuzzyCompare(m_meterGridEnergyConsumedToday, meterGridEnergyConsumedToday)) {
                 m_meterGridEnergyConsumedToday = meterGridEnergyConsumedToday;
                 emit meterGridEnergyConsumedTodayChanged(m_meterGridEnergyConsumedToday);
@@ -854,7 +997,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterGridEnergyConsumedMonth = convertEnergyToFloat(paramValueRaw, 16, 7.2E7) / 1000.0;
-            qCDebug(dcKaco()) << "Meter grid consumed this month" << meterGridEnergyConsumedMonth << "kWh";
+            qCDebug(dcKacoBh10()) << "Meter grid consumed this month" << meterGridEnergyConsumedMonth << "kWh";
             if (!qFuzzyCompare(m_meterGridEnergyConsumedMonth, meterGridEnergyConsumedMonth)) {
                 m_meterGridEnergyConsumedMonth = meterGridEnergyConsumedMonth;
                 emit meterGridEnergyConsumedMonthChanged(m_meterGridEnergyConsumedMonth);
@@ -863,7 +1006,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             stream >> paramValueRaw;
             // Note: for some reason this value was wrong by factor 10
             float meterGridEnergyConsumedTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 100.0;
-            qCDebug(dcKaco()) << "Meter grid consumed total" << meterGridEnergyConsumedTotal << "kWh";
+            qCDebug(dcKacoBh10()) << "Meter grid consumed total" << meterGridEnergyConsumedTotal << "kWh";
             if (!qFuzzyCompare(m_meterGridEnergyConsumedTotal, meterGridEnergyConsumedTotal)) {
                 m_meterGridEnergyConsumedTotal = meterGridEnergyConsumedTotal;
                 emit meterGridEnergyConsumedTotalChanged(m_meterGridEnergyConsumedTotal);
@@ -874,7 +1017,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // Meter self consumption
             stream >> paramValueRaw;
             float meterSelfConsumptionDay = convertEnergyToFloat(paramValueRaw, 16, 240000.0) / 1000.0;
-            qCDebug(dcKaco()) << "Meter self consumed today" << meterSelfConsumptionDay << "kWh";
+            qCDebug(dcKacoBh10()) << "Meter self consumed today" << meterSelfConsumptionDay << "kWh";
             if (!qFuzzyCompare(m_meterSelfConsumptionDay, meterSelfConsumptionDay)) {
                 m_meterSelfConsumptionDay = meterSelfConsumptionDay;
                 emit meterSelfConsumptionDayChanged(m_meterSelfConsumptionDay);
@@ -882,7 +1025,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterSelfConsumptionMonth = convertEnergyToFloat(paramValueRaw, 16, 7200000.0) / 1000.0;
-            qCDebug(dcKaco()) << "Meter self consumed this month" << meterSelfConsumptionMonth << "kWh";
+            qCDebug(dcKacoBh10()) << "Meter self consumed this month" << meterSelfConsumptionMonth << "kWh";
             if (!qFuzzyCompare(m_meterSelfConsumptionMonth, meterSelfConsumptionMonth)) {
                 m_meterSelfConsumptionMonth = meterSelfConsumptionMonth;
                 emit meterSelfConsumptionMonthChanged(m_meterSelfConsumptionMonth);
@@ -890,7 +1033,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterSelfConsumptionTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
-            qCDebug(dcKaco()) << "Meter self consumed total" << meterSelfConsumptionTotal << "kWh";
+            qCDebug(dcKacoBh10()) << "Meter self consumed total" << meterSelfConsumptionTotal << "kWh";
             if (!qFuzzyCompare(m_meterSelfConsumptionTotal, meterSelfConsumptionTotal)) {
                 m_meterSelfConsumptionTotal = meterSelfConsumptionTotal;
                 emit meterSelfConsumptionTotalChanged(m_meterSelfConsumptionTotal);
@@ -901,7 +1044,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // Meter AH battery
             stream >> paramValueRaw;
             float meterAhBatteryToday = convertEnergyToFloat(paramValueRaw, 16, 600.0);
-            qCDebug(dcKaco()) << "Meter Ah battery today" << meterAhBatteryToday << "Ah";
+            qCDebug(dcKacoBh10()) << "Meter Ah battery today" << meterAhBatteryToday << "Ah";
             if (!qFuzzyCompare(m_meterAhBatteryToday, meterAhBatteryToday)) {
                 m_meterAhBatteryToday = meterAhBatteryToday;
                 emit meterAhBatteryTodayChanged(m_meterAhBatteryToday);
@@ -909,7 +1052,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterAhBatteryMonth = convertEnergyToFloat(paramValueRaw, 16, 18000.0);
-            qCDebug(dcKaco()) << "Meter Ah battery this month" << meterAhBatteryMonth << "Ah";
+            qCDebug(dcKacoBh10()) << "Meter Ah battery this month" << meterAhBatteryMonth << "Ah";
             if (!qFuzzyCompare(m_meterAhBatteryMonth, meterAhBatteryMonth)) {
                 m_meterAhBatteryMonth = meterAhBatteryMonth;
                 emit meterAhBatteryMonthChanged(m_meterAhBatteryMonth);
@@ -917,7 +1060,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterAhBatteryTotal = convertEnergyToFloat(paramValueRaw, 32, 219000.0);
-            qCDebug(dcKaco()) << "Meter Ah battery total" << meterAhBatteryTotal << "Ah";
+            qCDebug(dcKacoBh10()) << "Meter Ah battery total" << meterAhBatteryTotal << "Ah";
             if (!qFuzzyCompare(m_meterAhBatteryTotal, meterAhBatteryTotal)) {
                 m_meterAhBatteryTotal = meterAhBatteryTotal;
                 emit meterAhBatteryTotalChanged(m_meterAhBatteryTotal);
@@ -933,7 +1076,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // Grid voltage L1
             stream >> paramValueRaw;
             float inverterGridVoltagePhaseA = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Inverter grid voltage phase A" << inverterGridVoltagePhaseA << "V";
+            qCDebug(dcKacoBh10()) << "Inverter grid voltage phase A" << inverterGridVoltagePhaseA << "V";
             if (!qFuzzyCompare(m_inverterGridVoltagePhaseA, inverterGridVoltagePhaseA)) {
                 m_inverterGridVoltagePhaseA = inverterGridVoltagePhaseA;
                 emit inverterGridVoltagePhaseAChanged(m_inverterGridVoltagePhaseA);
@@ -944,7 +1087,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // Grid voltage L2
             stream >> paramValueRaw;
             float inverterGridVoltagePhaseB = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Inverter grid voltage phase B" << inverterGridVoltagePhaseB << "V";
+            qCDebug(dcKacoBh10()) << "Inverter grid voltage phase B" << inverterGridVoltagePhaseB << "V";
             if (!qFuzzyCompare(m_inverterGridVoltagePhaseB, inverterGridVoltagePhaseB)) {
                 m_inverterGridVoltagePhaseB = inverterGridVoltagePhaseB;
                 emit inverterGridVoltagePhaseBChanged(m_inverterGridVoltagePhaseB);
@@ -955,7 +1098,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // Grid voltage L3
             stream >> paramValueRaw;
             float inverterGridVoltagePhaseC = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Inverter grid voltage phase C" << inverterGridVoltagePhaseC << "V";
+            qCDebug(dcKacoBh10()) << "Inverter grid voltage phase C" << inverterGridVoltagePhaseC << "V";
             if (!qFuzzyCompare(m_inverterGridVoltagePhaseC, inverterGridVoltagePhaseC)) {
                 m_inverterGridVoltagePhaseC = inverterGridVoltagePhaseC;
                 emit inverterGridVoltagePhaseCChanged(m_inverterGridVoltagePhaseC);
@@ -966,7 +1109,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // AC Power L1
             stream >> paramValueRaw;
             float inverterPowerPhaseA = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Inverter power phase A" << inverterPowerPhaseA << "W";
+            qCDebug(dcKacoBh10()) << "Inverter power phase A" << inverterPowerPhaseA << "W";
             if (!qFuzzyCompare(m_inverterPowerPhaseA, inverterPowerPhaseA)) {
                 m_inverterPowerPhaseA = inverterPowerPhaseA;
                 emit inverterPowerPhaseAChanged(m_inverterPowerPhaseA);
@@ -977,7 +1120,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // AC Power L2
             stream >> paramValueRaw;
             float inverterPowerPhaseB = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Inverter power phase B" << inverterPowerPhaseB << "W";
+            qCDebug(dcKacoBh10()) << "Inverter power phase B" << inverterPowerPhaseB << "W";
             if (!qFuzzyCompare(m_inverterPowerPhaseB, inverterPowerPhaseB)) {
                 m_inverterPowerPhaseB = inverterPowerPhaseB;
                 emit inverterPowerPhaseBChanged(m_inverterPowerPhaseB);
@@ -988,7 +1131,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // AC Power L3
             stream >> paramValueRaw;
             float inverterPowerPhaseC = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Inverter power phase C" << inverterPowerPhaseC << "W";
+            qCDebug(dcKacoBh10()) << "Inverter power phase C" << inverterPowerPhaseC << "W";
             if (!qFuzzyCompare(m_inverterPowerPhaseC, inverterPowerPhaseC)) {
                 m_inverterPowerPhaseC = inverterPowerPhaseC;
                 emit inverterPowerPhaseCChanged(m_inverterPowerPhaseC);
@@ -999,7 +1142,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // AC reactive Power L1
             stream >> paramValueRaw;
             float inverterReactivePowerPhaseA = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Inverter reactive power phase A" << inverterReactivePowerPhaseA << "Var";
+            qCDebug(dcKacoBh10()) << "Inverter reactive power phase A" << inverterReactivePowerPhaseA << "Var";
             if (!qFuzzyCompare(m_inverterReactivePowerPhaseA, inverterReactivePowerPhaseA)) {
                 m_inverterReactivePowerPhaseA = inverterReactivePowerPhaseA;
                 emit inverterReactivePowerPhaseAChanged(m_inverterReactivePowerPhaseA);
@@ -1008,7 +1151,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // AC reactive Power L2
             stream >> paramValueRaw;
             float inverterReactivePowerPhaseB = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Inverter reactive power phase B" << inverterReactivePowerPhaseB << "Var";
+            qCDebug(dcKacoBh10()) << "Inverter reactive power phase B" << inverterReactivePowerPhaseB << "Var";
             if (!qFuzzyCompare(m_inverterReactivePowerPhaseB, inverterReactivePowerPhaseB)) {
                 m_inverterReactivePowerPhaseB = inverterReactivePowerPhaseB;
                 emit inverterReactivePowerPhaseBChanged(m_inverterReactivePowerPhaseB);
@@ -1017,7 +1160,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // AC reactive Power L2
             stream >> paramValueRaw;
             float inverterReactivePowerPhaseC = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Inverter reactive power phase C" << inverterReactivePowerPhaseC << "Var";
+            qCDebug(dcKacoBh10()) << "Inverter reactive power phase C" << inverterReactivePowerPhaseC << "Var";
             if (!qFuzzyCompare(m_inverterReactivePowerPhaseC, inverterReactivePowerPhaseC)) {
                 m_inverterReactivePowerPhaseC = inverterReactivePowerPhaseC;
                 emit inverterReactivePowerPhaseCChanged(m_inverterReactivePowerPhaseC);
@@ -1028,7 +1171,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // PV voltage 1
             stream >> paramValueRaw;
             float inverterPvVoltage1 = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Inverter PV Voltage 1" << inverterPvVoltage1 << "V";
+            qCDebug(dcKacoBh10()) << "Inverter PV Voltage 1" << inverterPvVoltage1 << "V";
             if (!qFuzzyCompare(m_inverterPvVoltage1, inverterPvVoltage1)) {
                 m_inverterPvVoltage1 = inverterPvVoltage1;
                 emit inverterPvVoltage1Changed(m_inverterPvVoltage1);
@@ -1039,7 +1182,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // PV voltage 2
             stream >> paramValueRaw;
             float inverterPvVoltage2 = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Inverter PV Voltage 2" << inverterPvVoltage2 << "V";
+            qCDebug(dcKacoBh10()) << "Inverter PV Voltage 2" << inverterPvVoltage2 << "V";
             if (!qFuzzyCompare(m_inverterPvVoltage2, inverterPvVoltage2)) {
                 m_inverterPvVoltage2 = inverterPvVoltage2;
                 emit inverterPvVoltage2Changed(m_inverterPvVoltage2);
@@ -1051,7 +1194,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // PV power
             stream >> paramValueRaw;
             float inverterPvPower = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Inverter PV power" << inverterPvPower << "W";
+            qCDebug(dcKacoBh10()) << "Inverter PV power" << inverterPvPower << "W";
             if (!qFuzzyCompare(m_inverterPvPower, inverterPvPower)) {
                 m_inverterPvPower = inverterPvPower;
                 emit inverterPvPowerChanged(m_inverterPvPower);
@@ -1062,7 +1205,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // Grid frequency
             stream >> paramValueRaw;
             float inverterFrequency = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Inverter grid frequency" << inverterFrequency << "Hz";
+            qCDebug(dcKacoBh10()) << "Inverter grid frequency" << inverterFrequency << "Hz";
             if (!qFuzzyCompare(m_inverterFrequency, inverterFrequency)) {
                 m_inverterFrequency = inverterFrequency;
                 emit inverterFrequencyChanged(m_inverterFrequency);
@@ -1073,7 +1216,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // R isolation
             stream >> paramValueRaw;
             float inverterResistanceIsolation = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Inverter isolation resistence" << inverterResistanceIsolation << "Ohm";
+            qCDebug(dcKacoBh10()) << "Inverter isolation resistence" << inverterResistanceIsolation << "Ohm";
             if (!qFuzzyCompare(m_inverterResistanceIsolation, inverterResistanceIsolation)) {
                 m_inverterResistanceIsolation = inverterResistanceIsolation;
                 emit inverterResistanceIsolationChanged(m_inverterResistanceIsolation);
@@ -1086,7 +1229,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float batteryPower = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Battery power" << batteryPower << "W";
+            qCDebug(dcKacoBh10()) << "Battery power" << batteryPower << "W";
             if (!qFuzzyCompare(m_batteryPower, batteryPower)) {
                 m_batteryPower = batteryPower;
                 emit batteryPowerChanged(m_batteryPower);
@@ -1096,7 +1239,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float batteryVoltage = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Battery voltage" << batteryVoltage << "V";
+            qCDebug(dcKacoBh10()) << "Battery voltage" << batteryVoltage << "V";
             if (!qFuzzyCompare(m_batteryVoltage, batteryVoltage)) {
                 m_batteryVoltage = batteryVoltage;
                 emit batteryVoltageChanged(m_batteryVoltage);
@@ -1106,7 +1249,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float batteryPercentage = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Battery SOE" << batteryPercentage << "%";
+            qCDebug(dcKacoBh10()) << "Battery SOE" << batteryPercentage << "%";
             if (!qFuzzyCompare(m_batteryPercentage, batteryPercentage)) {
                 m_batteryPercentage = batteryPercentage;
                 emit batteryPercentageChanged(m_batteryPercentage);
@@ -1118,7 +1261,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterPowerPhaseA = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Meter power phase A" << meterPowerPhaseA << "W";
+            qCDebug(dcKacoBh10()) << "Meter power phase A" << meterPowerPhaseA << "W";
             if (!qFuzzyCompare(m_meterPowerPhaseA, meterPowerPhaseA)) {
                 m_meterPowerPhaseA = meterPowerPhaseA;
                 emit meterPowerPhaseAChanged(m_meterPowerPhaseA);
@@ -1126,7 +1269,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterPowerPhaseB = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Meter power phase B" << meterPowerPhaseB << "W";
+            qCDebug(dcKacoBh10()) << "Meter power phase B" << meterPowerPhaseB << "W";
             if (!qFuzzyCompare(m_meterPowerPhaseB, meterPowerPhaseB)) {
                 m_meterPowerPhaseB = meterPowerPhaseB;
                 emit meterPowerPhaseBChanged(m_meterPowerPhaseB);
@@ -1134,7 +1277,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterPowerPhaseC = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Meter power phase C" << meterPowerPhaseC << "W";
+            qCDebug(dcKacoBh10()) << "Meter power phase C" << meterPowerPhaseC << "W";
             if (!qFuzzyCompare(m_meterPowerPhaseC, meterPowerPhaseC)) {
                 m_meterPowerPhaseC = meterPowerPhaseC;
                 emit meterPowerPhaseAChanged(m_meterPowerPhaseC);
@@ -1144,7 +1287,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterPowerInternalPhaseA = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Meter power internal phase A" << meterPowerInternalPhaseA << "W";
+            qCDebug(dcKacoBh10()) << "Meter power internal phase A" << meterPowerInternalPhaseA << "W";
             if (!qFuzzyCompare(m_meterPowerInternalPhaseA, meterPowerInternalPhaseA)) {
                 m_meterPowerInternalPhaseA = meterPowerInternalPhaseA;
                 emit meterPowerInternalPhaseAChanged(m_meterPowerInternalPhaseA);
@@ -1152,7 +1295,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterPowerInternalPhaseB = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Meter power internal phase B" << meterPowerInternalPhaseB << "W";
+            qCDebug(dcKacoBh10()) << "Meter power internal phase B" << meterPowerInternalPhaseB << "W";
             if (!qFuzzyCompare(m_meterPowerInternalPhaseB, meterPowerInternalPhaseB)) {
                 m_meterPowerInternalPhaseB = meterPowerInternalPhaseB;
                 emit meterPowerInternalPhaseBChanged(m_meterPowerInternalPhaseB);
@@ -1160,7 +1303,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterPowerInternalPhaseC = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Meter power internal phase C" << meterPowerInternalPhaseC << "W";
+            qCDebug(dcKacoBh10()) << "Meter power internal phase C" << meterPowerInternalPhaseC << "W";
             if (!qFuzzyCompare(m_meterPowerInternalPhaseC, meterPowerInternalPhaseC)) {
                 m_meterPowerInternalPhaseC = meterPowerInternalPhaseC;
                 emit meterPowerInternalPhaseAChanged(m_meterPowerInternalPhaseC);
@@ -1170,7 +1313,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterVoltagePhaseA = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Meter voltage phase A" << meterVoltagePhaseA << "W";
+            qCDebug(dcKacoBh10()) << "Meter voltage phase A" << meterVoltagePhaseA << "W";
             if (!qFuzzyCompare(m_meterVoltagePhaseA, meterVoltagePhaseA)) {
                 m_meterVoltagePhaseA = meterVoltagePhaseA;
                 emit meterVoltagePhaseAChanged(m_meterVoltagePhaseA);
@@ -1178,7 +1321,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterVoltagePhaseB = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Meter voltage phase B" << meterVoltagePhaseB << "W";
+            qCDebug(dcKacoBh10()) << "Meter voltage phase B" << meterVoltagePhaseB << "W";
             if (!qFuzzyCompare(m_meterVoltagePhaseB, meterVoltagePhaseB)) {
                 m_meterVoltagePhaseB = meterVoltagePhaseB;
                 emit meterVoltagePhaseBChanged(m_meterVoltagePhaseB);
@@ -1186,7 +1329,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterVoltagePhaseC = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Meter voltage phase C" << meterVoltagePhaseC << "W";
+            qCDebug(dcKacoBh10()) << "Meter voltage phase C" << meterVoltagePhaseC << "W";
             if (!qFuzzyCompare(m_meterVoltagePhaseC, meterVoltagePhaseC)) {
                 m_meterVoltagePhaseC = meterVoltagePhaseC;
                 emit meterVoltagePhaseAChanged(m_meterVoltagePhaseC);
@@ -1196,7 +1339,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
             stream >> paramValueRaw;
             float meterFrequency = convertRawValueToFloat(paramValueRaw);
-            qCDebug(dcKaco()) << "Meter frequency 1" << meterFrequency << "Hz";
+            qCDebug(dcKacoBh10()) << "Meter frequency 1" << meterFrequency << "Hz";
             if (!qFuzzyCompare(m_meterFrequency, meterFrequency)) {
                 m_meterFrequency = meterFrequency;
                 emit meterFrequencyChanged(m_meterFrequency);
@@ -1208,7 +1351,7 @@ void KacoClient::processInverterResponse(const QByteArray &message)
 
         } else {
             // Unknown property hash received...let's skip and see if we find more valid data
-            qCWarning(dcKaco()) << "Unknown property hash. Skipping property with size" << paramSize << "and hash value" << paramHash;
+            qCWarning(dcKacoBh10()) << "Unknown property hash. Skipping property with size" << paramSize << "and hash value" << paramHash;
             quint8 skippedByte;
             for (int i = 0; i < paramSize; i++) {
                 stream >> skippedByte;
@@ -1277,7 +1420,7 @@ qint32 KacoClient::calculateStringHashCode(const QString &name)
     for (int i = 0; i < name.length(); i++)
         hashSum = (hashSum * 31) + name.at(i).toLatin1();
 
-    //qCDebug(dcKaco()) << "Hash of" << name << hashSum;
+    //qCDebug(dcKacoBh10()) << "Hash of" << name << hashSum;
     return hashSum;
 }
 
@@ -1325,7 +1468,7 @@ void KacoClient::printHashCodes(const QStringList &properties)
         stream.setByteOrder(QDataStream::LittleEndian);
         quint16 hashCode = calculateStringHashCode(status) & 0xffff;
         stream << hashCode;
-        qCDebug(dcKaco()) << " -" << data.toHex() << "|" << status << byteArrayToHexString(data);
+        qCDebug(dcKacoBh10()) << " -" << data.toHex() << "|" << status << byteArrayToHexString(data);
     }
 }
 
@@ -1336,14 +1479,15 @@ void KacoClient::refresh()
         if (m_requestPendingTicks >= 5) {
             m_requestPendingTicks = 0;
             m_requestPending = false;
-            qCWarning(dcKaco()) << "No response received for" << m_state << ". Retry";
+            qCWarning(dcKacoBh10()) << "No response received for" << m_state << ". Retry";
+            emit connectedChanged(false);
         } else {
             return;
         }
     }
 
     if (m_state != StateAuthenticate && picRefreshRequired()) {
-        qCDebug(dcKaco()) << "Refreshing key required...";
+        qCDebug(dcKacoBh10()) << "Refreshing key required...";
         setState(StateRefreshKey);
     }
 

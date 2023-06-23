@@ -3,12 +3,12 @@ include(plugins.pri)
 QT += network
 
 SOURCES += \
-    integrationpluginkaco.cpp \
+    integrationpluginkacobh10.cpp \
     kacoclient.cpp \
     kacodiscovery.cpp
 
 HEADERS += \
-    integrationpluginkaco.h \
+    integrationpluginkacobh10.h \
     kacoclient.h \
     kacodiscovery.h
 
