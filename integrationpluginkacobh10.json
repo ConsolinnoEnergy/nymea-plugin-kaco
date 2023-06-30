@@ -1,17 +1,17 @@
 {
-    "name": "Kaco",
-    "displayName": "Kaco",
+    "name": "KacoBh10",
+    "displayName": "Kaco BH10",
     "id": "2b767109-096a-40c5-882d-141df3f39d7b",
     "vendors": [
         {
-            "name": "kaco",
-            "displayName": "Kaco",
+            "name": "kacobh10",
+            "displayName": "Kaco BH10",
             "id": "387e7968-467c-4ec6-ac1a-60484cb8d027",
             "thingClasses": [
                 {
                     "id": "93d3facb-5ef7-4aff-a7de-7d4ea5a207f3",
                     "name": "inverter",
-                    "displayName": "Kaco Inverter",
+                    "displayName": "Kaco BH10 Inverter",
                     "createMethods": ["discovery", "user"],
                     "interfaces": [ "solarinverter", "connectable" ],
                     "providedInterfaces": [ "energymeter", "energystorage"],
@@ -22,7 +22,7 @@
                             "displayName": "IP address",
                             "type": "QString",
                             "inputType": "IPv4Address",
-                            "defaultValue":"0.0.0.0"
+                            "defaultValue": "0.0.0.0"
                         },
                         {
                             "id": "ebe2036a-d0e3-4c60-ac03-07c851231859",
@@ -32,12 +32,20 @@
                             "defaultValue": 9760
                         },
                         {
+                            "id": "538524a7-3cf2-48e8-99ec-2a81ba3a5a4c",
+                            "name": "userKey",
+                            "displayName": "Customer PW",
+                            "type": "QString",
+                            "inputType": "TextLine",
+                            "defaultValue": "user"
+                        },
+                        {
                             "id": "b6013e67-39d1-4154-906b-88ee5c779463",
                             "name": "macAddress",
                             "displayName": "MAC address",
                             "type": "QString",
                             "inputType": "TextLine",
-                            "defaultValue":"00:00:00:00:00:00",
+                            "defaultValue": "00:00:00:00:00:00",
                             "readOnly": true
                         },
                         {
@@ -55,6 +63,24 @@
                             "name": "connected",
                             "displayName": "Connected",
                             "displayNameEvent": "Connected changed",
+                            "type": "bool",
+                            "defaultValue": false,
+                            "cached": false
+                        },
+                        {
+                            "id": "1ed4cddf-e012-406f-bb2f-edc7f09b5cac",
+                            "name": "firmwareVersion",
+                            "displayName": "Firmware version",
+                            "displayNameEvent": "Firmware version received",
+                            "type": "QString",
+                            "defaultValue": "",
+                            "cached": false
+                        },
+                        {
+                            "id": "776f5a3d-9900-432d-99fa-7098335a5308",
+                            "name": "authorization",
+                            "displayName": "Authorization",
+                            "displayNameEvent": "Authorization changed",
                             "type": "bool",
                             "defaultValue": false,
                             "cached": false
@@ -85,7 +111,6 @@
                             "type": "double",
                             "unit": "Volt",
                             "defaultValue": 0.00,
-                            "filter": "adaptive",
                             "suggestLogging": true
                         },
                         {
@@ -96,7 +121,6 @@
                             "type": "double",
                             "unit": "Volt",
                             "defaultValue": 0.00,
-                            "filter": "adaptive",
                             "suggestLogging": true
                         },
                         {
@@ -253,8 +277,7 @@
                             "displayNameEvent": "Current power phase A changed",
                             "type": "double",
                             "unit": "Watt",
-                            "defaultValue": 0.00,
-                            "filter": "adaptive"
+                            "defaultValue": 0.00
                         },
                         {
                             "id": "b0068d87-8924-4ab5-8495-4af7f7196372",
@@ -263,8 +286,7 @@
                             "displayNameEvent": "Current power phase B changed",
                             "type": "double",
                             "unit": "Watt",
-                            "defaultValue": 0.00,
-                            "filter": "adaptive"
+                            "defaultValue": 0.00
                         },
                         {
                             "id": "79fd08ee-d7fa-4883-9c2a-e7d1f5c82976",
@@ -273,8 +295,7 @@
                             "displayNameEvent": "Current power phase C changed",
                             "type": "double",
                             "unit": "Watt",
-                            "defaultValue": 0.00,
-                            "filter": "adaptive"
+                            "defaultValue": 0.00
                         },
                         {
                             "id": "46ae5c40-f389-4f7e-a59f-8947d7dc9f3f",
@@ -283,8 +304,7 @@
                             "displayNameEvent": "Phase A current changed",
                             "type": "double",
                             "unit": "Ampere",
-                            "defaultValue": 0.00,
-                            "filter": "adaptive"
+                            "defaultValue": 0.00
                         },
                         {
                             "id": "efc75436-ac51-4fee-81f1-65a726416980",
@@ -293,8 +313,7 @@
                             "displayNameEvent": "Phase B current changed",
                             "type": "double",
                             "unit": "Ampere",
-                            "defaultValue": 0.00,
-                            "filter": "adaptive"
+                            "defaultValue": 0.00
                         },
                         {
                             "id": "618cbcc5-2efe-49d2-9c5c-53fb3eaa3a9d",
@@ -303,8 +322,7 @@
                             "displayNameEvent": "Phase C current changed",
                             "type": "double",
                             "unit": "Ampere",
-                            "defaultValue": 0.00,
-                            "filter": "adaptive"
+                            "defaultValue": 0.00
                         },
                         {
                             "id": "4ff342de-f0b7-475a-99e4-3a926326d1b7",
@@ -313,8 +331,7 @@
                             "displayNameEvent": "Phase A volatage changed",
                             "type": "double",
                             "unit": "Volt",
-                            "defaultValue": 0.00,
-                            "filter": "adaptive"
+                            "defaultValue": 0.00
                         },
                         {
                             "id": "cc8434f1-02fe-41ad-bc8a-94e57293f8fc",
@@ -323,8 +340,7 @@
                             "displayNameEvent": "Phase B voltage changed",
                             "type": "double",
                             "unit": "Volt",
-                            "defaultValue": 0.00,
-                            "filter": "adaptive"
+                            "defaultValue": 0.00
                         },
                         {
                             "id": "fbd673cf-8891-4aef-b112-2829f5fcfe06",
@@ -333,8 +349,7 @@
                             "displayNameEvent": "Phase C voltage changed",
                             "type": "double",
                             "unit": "Volt",
-                            "defaultValue": 0.00,
-                            "filter": "adaptive"
+                            "defaultValue": 0.00
                         },
                         {
                             "id": "b3aeeb45-9e39-4723-ab6e-ae6dc55630c9",
@@ -353,6 +368,17 @@
                     "displayName": "Kaco Battery",
                     "createMethods": ["auto"],
                     "interfaces": ["energystorage", "connectable"],
+                    "settingsTypes": [
+                        {
+                            "id": "fc65c6e4-8bcb-43c8-8b59-cef11ae60369",
+                            "name": "capacity",
+                            "displayName": "Battery capacity kWh",
+                            "type": "uint",
+                            "minValue": 0,
+                            "maxValue": 10000,
+                            "defaultValue": 0
+                        }
+                    ],
                     "paramTypes":[
 
                     ],

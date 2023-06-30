@@ -114,6 +114,8 @@ public slots:
 signals:
     void connectedChanged(bool connected);
     void stateChanged(State state);
+    void firmwareVersionChanged(const QString &firmwareVersion);
+    void authorizationChanged(bool authorization);
 
     void serialNumberChanged(const QString &serialNumber);
 
@@ -184,7 +186,8 @@ private:
 
     quint8 m_userId = 0;
     QString m_userPassword;
-    int m_userPasswordHash = 0;
+    int m_userPasswordHash = 0;    
+    QByteArray m_identKey;
 
     // Data reading
     QTimer m_refreshTimer;
@@ -198,9 +201,12 @@ private:
     quint8 m_userType = 0;
     QByteArray m_mac;
     QString m_serialNumber;
+    QString m_firmwareVersion;
     QByteArray m_picRandomKey;
     quint32 m_clientId = 0;
     uint m_lastPicTimestamp = 0;
+    bool m_communicationVer8x = true;
+    bool m_authorization = false;
 
     // Properties of data sets
     QStringList m_statusProperties;
@@ -276,6 +282,8 @@ private:
     void processResponse(const QByteArray &response);
 
     void sendPicRequest();
+    void shuffleBytes(const QByteArray &src, int spos, int len, const QByteArray &key, QByteArray &dest, int dpos, int k);
+    QByteArray updateIdentKey(const QByteArray &randomKey);
     void processPicResponse(const QByteArray &message);
 
     void sendInverterRequest();
@@ -297,6 +305,8 @@ private:
 
     bool picRefreshRequired();
     void printHashCodes(const QStringList &properties);
+
+
 
 private slots:
     void refresh();

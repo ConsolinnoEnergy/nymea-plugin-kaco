@@ -1,3 +1,3 @@
-# nymea-plugin-kaco
+# nymea-plugin-kaco-bh10
 
-Reverse engineered plugin fro Kaco inverters. The source should be kept closed but we have the permission for reverse engineering. 
+Plugin for the Kaco BH10 hybrid inverter.
