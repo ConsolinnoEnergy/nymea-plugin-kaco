@@ -59,7 +59,7 @@ QList<KacoDiscovery::KacoDicoveryResult> KacoDiscovery::result() const
 
 void KacoDiscovery::startDiscovery()
 {
-    qCDebug(dcKaco()) << "Discovery: Starting discovery mechanism...";
+    qCDebug(dcKacoBh10()) << "Discovery: Starting discovery mechanism...";
 
     // Clean up old discovery results
     m_result.clear();
@@ -67,18 +67,18 @@ void KacoDiscovery::startDiscovery()
     // Create a socket for each network interface
     foreach (const QNetworkInterface &interface, QNetworkInterface::allInterfaces()) {
         if (interface.flags().testFlag(QNetworkInterface::IsLoopBack)) {
-            qCDebug(dcKaco()) << "Discovery: Skipping loop back interface" << interface.name();
+            qCDebug(dcKacoBh10()) << "Discovery: Skipping loop back interface" << interface.name();
             continue;
         }
 
         if (!interface.flags().testFlag(QNetworkInterface::CanMulticast)) {
-            qCDebug(dcKaco()) << "Discovery: Skipping interface" << interface.name() << "because it can not multicast.";
+            qCDebug(dcKacoBh10()) << "Discovery: Skipping interface" << interface.name() << "because it can not multicast.";
             continue;
         }
 
         QList<QNetworkAddressEntry> addressEntries = interface.addressEntries();
         if (addressEntries.isEmpty()) {
-            qCDebug(dcKaco()) << "Discovery: Skipping interface" << interface.name() << "because no IP configured.";
+            qCDebug(dcKacoBh10()) << "Discovery: Skipping interface" << interface.name() << "because no IP configured.";
             continue;
         }
 
@@ -86,21 +86,21 @@ void KacoDiscovery::startDiscovery()
 
         QHostAddress hostAddress = addressEntry.ip();
         if (hostAddress.protocol() != QAbstractSocket::IPv4Protocol) {
-            qCDebug(dcKaco()) << "Discovery: Skipping interface" << interface.name() << "because it is not IPv4.";
+            qCDebug(dcKacoBh10()) << "Discovery: Skipping interface" << interface.name() << "because it is not IPv4.";
             continue;
         }
 
-        qCDebug(dcKaco()) << "Discovery: Creat socket for network interface" << interface.name() << hostAddress.toString();
+        qCDebug(dcKacoBh10()) << "Discovery: Creat socket for network interface" << interface.name() << hostAddress.toString();
         QUdpSocket *socket = new QUdpSocket(this);
         if (!socket->bind(m_mdnsPort, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint)) {
-            qCWarning(dcKaco()) << "Discovery: Failed to bind mDNS socket:" << socket->errorString();
+            qCWarning(dcKacoBh10()) << "Discovery: Failed to bind mDNS socket:" << socket->errorString();
             socket->deleteLater();
             return;
         }
 
-        qCDebug(dcKaco()) << "Discovery: Bound mDNS socket successfully.";
+        qCDebug(dcKacoBh10()) << "Discovery: Bound mDNS socket successfully.";
         if (!setMulticastGroup(socket, m_multicastAddress, interface, true)) {
-            qCWarning(dcKaco()) << "Discovery: Failed to join multicast on interface" << interface.name() << socket->errorString();
+            qCWarning(dcKacoBh10()) << "Discovery: Failed to join multicast on interface" << interface.name() << socket->errorString();
             socket->deleteLater();
             continue;
         }
@@ -118,11 +118,11 @@ void KacoDiscovery::stopDiscovery()
 {
     m_discoveryTimer.stop();
 
-    qCDebug(dcKaco()) << "Discovery: Stopping discovery mechanism...";
+    qCDebug(dcKacoBh10()) << "Discovery: Stopping discovery mechanism...";
     foreach (QUdpSocket *socket, m_interfaceSockets) {
         QNetworkInterface interface = QNetworkInterface::interfaceFromIndex(m_interfaceSockets.key(socket));
         if (!setMulticastGroup(socket, m_multicastAddress, interface, false)) {
-            qCWarning(dcKaco()) << "Discovery: Failed to leave multicast group" << m_multicastAddress.toString();
+            qCWarning(dcKacoBh10()) << "Discovery: Failed to leave multicast group" << m_multicastAddress.toString();
         }
         m_interfaceSockets.remove(m_interfaceSockets.key(socket));
         socket->deleteLater();
@@ -165,7 +165,7 @@ bool KacoDiscovery::setMulticastGroup(QUdpSocket *socket, const QHostAddress &gr
                 QHostAddress firstIP = addressEntries.first().ip();
                 mreq4.imr_interface.s_addr = htonl(firstIP.toIPv4Address());
             } else {
-                qCWarning(dcKaco()) << "Discovery: multicast: interface has no entries";
+                qCWarning(dcKacoBh10()) << "Discovery: multicast: interface has no entries";
                 return false;
             }
         } else {
@@ -177,7 +177,7 @@ bool KacoDiscovery::setMulticastGroup(QUdpSocket *socket, const QHostAddress &gr
 
     int res = setsockopt(socket->socketDescriptor(), IPPROTO_IP, sockOpt, sockArg, sockArgSize);
     if (res != 0) {
-        qCDebug(dcKaco()) << "Discovery: Error setting sockopt:" << strerror(errno);
+        qCDebug(dcKacoBh10()) << "Discovery: Error setting sockopt:" << strerror(errno);
         return false;
     }
     return true;
@@ -191,7 +191,7 @@ void KacoDiscovery::processDatagram(const QByteArray &datagram)
     stream >> transactionId >> flagType;
     // We search for Standard Query response
     if (flagType != 0x8400) {
-        //qCDebug(dcKaco()) << "Discovery: Not a standard query response. Skipping packet...";
+        //qCDebug(dcKacoBh10()) << "Discovery: Not a standard query response. Skipping packet...";
         return;
     }
 
@@ -200,13 +200,13 @@ void KacoDiscovery::processDatagram(const QByteArray &datagram)
     quint16 authorityCount;
     quint16 additionalCount;
     stream >> question >> answerCount >> authorityCount >> additionalCount;
-    qCDebug(dcKaco()) << "Discovery: #############################################";
-    qCDebug(dcKaco()) << "Discovery: Questions:" << question;
-    qCDebug(dcKaco()) << "Discovery: Answer RRs:" << answerCount;
-    qCDebug(dcKaco()) << "Discovery: Authority RRs:" << authorityCount;
-    qCDebug(dcKaco()) << "Discovery: Additional RRs:" << additionalCount;
+    qCDebug(dcKacoBh10()) << "Discovery: #############################################";
+    qCDebug(dcKacoBh10()) << "Discovery: Questions:" << question;
+    qCDebug(dcKacoBh10()) << "Discovery: Answer RRs:" << answerCount;
+    qCDebug(dcKacoBh10()) << "Discovery: Authority RRs:" << authorityCount;
+    qCDebug(dcKacoBh10()) << "Discovery: Additional RRs:" << additionalCount;
     if (answerCount == 0) {
-        qCDebug(dcKaco()) << "Discovery: No answers to parse. Discarding packet...";
+        qCDebug(dcKacoBh10()) << "Discovery: No answers to parse. Discarding packet...";
         return;
     }
 
@@ -253,29 +253,29 @@ void KacoDiscovery::processDatagram(const QByteArray &datagram)
         if (answerData.count() == 0)
             continue;
 
-        //qCDebug(dcKaco()) << "Discovery: Answer data length" << answerData.length() << answerData.toHex();
+        //qCDebug(dcKacoBh10()) << "Discovery: Answer data length" << answerData.length() << answerData.toHex();
 
         // Now parse the answer data depending on the type
         switch (type) {
         case RecordTypeA: {
-            qCDebug(dcKaco()) << "Discovery: --> Answer" << i << "| Name:" << name << "TTL:" << ttl << "Length:" << dataLength << static_cast<RecordType>(type);
+            qCDebug(dcKacoBh10()) << "Discovery: --> Answer" << i << "| Name:" << name << "TTL:" << ttl << "Length:" << dataLength << static_cast<RecordType>(type);
             QDataStream answerDataStream(&answerData, QIODevice::ReadOnly);
             if (dataLength == 4) {
                 quint32 hostAddressRaw;
                 answerDataStream >> hostAddressRaw;
                 hostAddress = QHostAddress(hostAddressRaw);
-                qCDebug(dcKaco()) << "Discovery:     A:" << hostAddress.toString();
+                qCDebug(dcKacoBh10()) << "Discovery:     A:" << hostAddress.toString();
                 domainName = name;
             } else if (dataLength == 8) {
                 quint64 hostAddressRaw;
                 answerDataStream >> hostAddressRaw;
                 hostAddress = QHostAddress(hostAddressRaw);
-                qCDebug(dcKaco()) << "Discovery:     A:" << hostAddress.toString();
+                qCDebug(dcKacoBh10()) << "Discovery:     A:" << hostAddress.toString();
             }
             break;
         }
         case RecordTypeSrv: { // SRV record (Server selection)
-            qCDebug(dcKaco()) << "Discovery: --> Answer" << i << "| Name:" << name << "TTL:" << ttl << "Length:" << dataLength;
+            qCDebug(dcKacoBh10()) << "Discovery: --> Answer" << i << "| Name:" << name << "TTL:" << ttl << "Length:" << dataLength;
             QDataStream answerDataStream(&answerData, QIODevice::ReadOnly);
             quint16 priority; quint16 weight;
             answerDataStream >> priority >> weight >> servicePort;
@@ -287,11 +287,11 @@ void KacoDiscovery::processDatagram(const QByteArray &datagram)
             }
 
             QString target = parseLabel(targetData);
-            qCDebug(dcKaco()) << "Discovery:     SRV: Service port:" << servicePort << "target:" << target;
+            qCDebug(dcKacoBh10()) << "Discovery:     SRV: Service port:" << servicePort << "target:" << target;
             break;
         }
         case RecordTypePtr: { // PTR record
-            qCDebug(dcKaco()) << "Discovery: --> Answer" << i << "| Name:" << name << "TTL:" << ttl << "Length:" << dataLength;
+            qCDebug(dcKacoBh10()) << "Discovery: --> Answer" << i << "| Name:" << name << "TTL:" << ttl << "Length:" << dataLength;
             QDataStream answerDataStream(&answerData, QIODevice::ReadOnly);
             QByteArray domainData;
             while (!answerDataStream.atEnd()) {
@@ -303,11 +303,11 @@ void KacoDiscovery::processDatagram(const QByteArray &datagram)
                 }
             }
 
-            qCDebug(dcKaco()) << "Discovery:     PTR: Domain name:" << parseLabel(domainData);
+            qCDebug(dcKacoBh10()) << "Discovery:     PTR: Domain name:" << parseLabel(domainData);
             break;
         }
         case RecordTypeTxt: {
-            qCDebug(dcKaco()) << "Discovery: --> Answer" << i << "| Name:" << name << "TTL:" << ttl << "Length:" << dataLength;
+            qCDebug(dcKacoBh10()) << "Discovery: --> Answer" << i << "| Name:" << name << "TTL:" << ttl << "Length:" << dataLength;
             QDataStream answerDataStream(&answerData, QIODevice::ReadOnly);
             quint8 txtLength;
             QStringList txtRecords;
@@ -321,7 +321,7 @@ void KacoDiscovery::processDatagram(const QByteArray &datagram)
                 }
                 QString record = QString::fromUtf8(txtData).trimmed();
                 txtRecords.append(record);
-                qCDebug(dcKaco()) << "Discovery:     TXT:" << record;
+                qCDebug(dcKacoBh10()) << "Discovery:     TXT:" << record;
             }
 
             if (discoveredKaco && txtRecords.count() == 1) {
@@ -345,12 +345,12 @@ void KacoDiscovery::processDatagram(const QByteArray &datagram)
     }
 
     if (discoveredKaco && !m_result.contains(hostAddress)) {
-        qCDebug(dcKaco()) << "Discovery: === Found Kaco Inverter ===";
-        qCDebug(dcKaco()) << "Discovery: - Host address:" << hostAddress.toString();
-        qCDebug(dcKaco()) << "Discovery: - Domain:" << domainName;
-        qCDebug(dcKaco()) << "Discovery: - Serial number:" << serialNumber;
-        qCDebug(dcKaco()) << "Discovery: - Service port:" << servicePort;
-        qCDebug(dcKaco()) << "Discovery: - MAC:" << mac;
+        qCDebug(dcKacoBh10()) << "Discovery: === Found Kaco Inverter ===";
+        qCDebug(dcKacoBh10()) << "Discovery: - Host address:" << hostAddress.toString();
+        qCDebug(dcKacoBh10()) << "Discovery: - Domain:" << domainName;
+        qCDebug(dcKacoBh10()) << "Discovery: - Serial number:" << serialNumber;
+        qCDebug(dcKacoBh10()) << "Discovery: - Service port:" << servicePort;
+        qCDebug(dcKacoBh10()) << "Discovery: - MAC:" << mac;
 
         KacoDicoveryResult result;
         result.hostAddress = hostAddress;
@@ -385,7 +385,7 @@ QString KacoDiscovery::parseLabel(const QByteArray &datagram)
     }
 
     label = sections.join('.');
-    //qCDebug(dcKaco()) << "Parsed label" << label << "from" << datagram.toHex();
+    //qCDebug(dcKacoBh10()) << "Parsed label" << label << "from" << datagram.toHex();
     return label;
 }
 
@@ -403,7 +403,7 @@ void KacoDiscovery::discover()
 {
     foreach (QUdpSocket *socket, m_interfaceSockets) {
         QNetworkInterface interface = QNetworkInterface::interfaceFromIndex(m_interfaceSockets.key(socket));
-        //qCDebug(dcKaco()) << "Discovery: sending query request to intrface" << interface.name();
+        //qCDebug(dcKacoBh10()) << "Discovery: sending query request to intrface" << interface.name();
         // Note: they send always the same static discovery message
         //    // DNS-SD Header
         //    0x00, 0x00, // Transaction ID
@@ -426,7 +426,7 @@ void KacoDiscovery::discover()
 
         int bytesWritte = socket->writeDatagram(QByteArray::fromHex("000000000001000000000000095f63656e747572696f045f746370056c6f63616c00000c0001"), m_multicastAddress, m_mdnsPort);
         if (bytesWritte < 0) {
-            qCWarning(dcKaco()) << "Discovery: failed to send discovery requet to mDNS multicast" << interface.name() << m_multicastAddress.toString() << m_mdnsPort;
+            qCWarning(dcKacoBh10()) << "Discovery: failed to send discovery requet to mDNS multicast" << interface.name() << m_multicastAddress.toString() << m_mdnsPort;
         }
     }
 }
@@ -436,7 +436,7 @@ void KacoDiscovery::readDatagram()
     QUdpSocket *socket = qobject_cast<QUdpSocket *>(sender());
     while (socket->hasPendingDatagrams()) {
         qint64 size = socket->pendingDatagramSize();
-        //qCDebug(dcKaco()) << "Discovery: Received datagram ( size" << size << ")";
+        //qCDebug(dcKacoBh10()) << "Discovery: Received datagram ( size" << size << ")";
         if (size == 0)
             return;
 

@@ -39,15 +39,15 @@
 #include "kacoclient.h"
 #include "kacodiscovery.h"
 
-class IntegrationPluginKaco : public IntegrationPlugin
+class IntegrationPluginKacoBh10 : public IntegrationPlugin
 {
     Q_OBJECT
 
-    Q_PLUGIN_METADATA(IID "io.nymea.IntegrationPlugin" FILE "integrationpluginkaco.json")
+    Q_PLUGIN_METADATA(IID "io.nymea.IntegrationPlugin" FILE "integrationpluginkacobh10.json")
     Q_INTERFACES(IntegrationPlugin)
 
 public:
-    explicit IntegrationPluginKaco();
+    explicit IntegrationPluginKacoBh10();
 
     void init() override;
     void discoverThings(ThingDiscoveryInfo *info) override;
