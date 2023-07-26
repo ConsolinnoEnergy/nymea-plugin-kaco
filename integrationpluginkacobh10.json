@@ -12,7 +12,7 @@
                     "id": "93d3facb-5ef7-4aff-a7de-7d4ea5a207f3",
                     "name": "inverter",
                     "displayName": "Kaco BH10 Inverter",
-                    "createMethods": ["discovery", "user"],
+                    "createMethods": ["discovery"],
                     "interfaces": [ "solarinverter", "connectable" ],
                     "providedInterfaces": [ "energymeter", "energystorage"],
                     "paramTypes":[
@@ -22,7 +22,8 @@
                             "displayName": "IP address",
                             "type": "QString",
                             "inputType": "IPv4Address",
-                            "defaultValue": "0.0.0.0"
+                            "defaultValue": "0.0.0.0",
+                            "readOnly": true
                         },
                         {
                             "id": "ebe2036a-d0e3-4c60-ac03-07c851231859",

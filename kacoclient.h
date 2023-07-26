@@ -191,6 +191,7 @@ private:
 
     // Data reading
     QTimer m_refreshTimer;
+    QTimer m_reconnectTimer;
     bool m_requestPending = false;
     int m_requestPendingTicks = 0;
 
