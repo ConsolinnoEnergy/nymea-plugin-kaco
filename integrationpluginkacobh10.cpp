@@ -91,12 +91,9 @@ void IntegrationPluginKacoBh10::setupThing(ThingSetupInfo *info)
             hardwareManager()->networkDeviceDiscovery()->unregisterMonitor(m_monitors.take(thing));
         }
 
-        MacAddress macAddressZero = MacAddress(QString("00:00:00:00:00:00"));
-        MacAddress macAddress = MacAddress(thing->paramValue(inverterThingMacAddressParamTypeId).toString());
-
-        // macAddress.isValid() returns true if the address is all zeroes. But the monitor will segfault, if it is given a
-        // mac address of all zeroes. So need to test for zero mac address as well.
-        if (!macAddress.isValid() || macAddress == macAddressZero) {
+        // macAddress.isValid() returns true if the address is all zeroes. But registering a monitor with an address of all zeroes 
+        // will return a nullpointer. So need to test for zero mac address, to not get a null pointer monitor.
+        if (!macAddress.isNull()) {
             qCWarning(dcKacoBh10()) << "The configured mac address is not valid" << thing->params();
             info->finish(Thing::ThingErrorInvalidParameter, QT_TR_NOOP("The MAC address is not known. Please reconfigure the thing."));
             return;
