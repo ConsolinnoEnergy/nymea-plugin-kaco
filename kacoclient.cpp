@@ -398,6 +398,7 @@ void KacoClient::connectToDevice()
 {
     //Check if address has changed.
     QObject *obj = QObject::parent();
+    m_reconnectTimer.start();
     m_hostAddress = qobject_cast<IntegrationPluginKacoBh10 *>(obj)->getHostAddress();
     m_socket->connectToHost(m_hostAddress.toString(), m_port);
 }
@@ -405,6 +406,7 @@ void KacoClient::connectToDevice()
 void KacoClient::disconnectFromDevice()
 {
     m_socket->close();
+    m_reconnectTimer.stop();
 }
 
 void KacoClient::setState(State state)
