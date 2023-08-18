@@ -156,21 +156,10 @@ void IntegrationPluginKacoBh10::setupThing(ThingSetupInfo *info)
     } else if (thing->thingClassId() == batteryThingClassId) {
         // Nothing to do here, we get all information from the inverter connection
         info->finish(Thing::ThingErrorNoError);
-
-        // Set battery capacity from settings on restart.
-        thing->setStateValue(batteryCapacityStateTypeId, thing->setting(batterySettingsCapacityParamTypeId).toUInt());
-
-        // Set battery capacity on settings change.
-        connect(thing, &Thing::settingChanged, this, [this, thing] (const ParamTypeId &paramTypeId, const QVariant &value) {
-            if (paramTypeId == batterySettingsCapacityParamTypeId) {
-                qCDebug(dcKacoBh10()) << "Battery capacity changed to" << value.toInt() << "kWh";
-                thing->setStateValue(batteryCapacityStateTypeId, value.toInt());
-            }
-        });
-
         Thing *parentThing = myThings().findById(thing->parentId());
         if (parentThing) {
             thing->setStateValue(batteryConnectedStateTypeId, parentThing->stateValue(inverterConnectedStateTypeId).toBool());
+            thing->setStateValue(batteryCapacityStateTypeId, parentThing->paramValue(inverterThingBatteryCapacityParamTypeId).toUInt());
         }
     }
 }
