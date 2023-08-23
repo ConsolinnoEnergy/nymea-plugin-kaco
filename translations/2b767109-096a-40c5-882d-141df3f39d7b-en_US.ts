@@ -2,6 +2,19 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en_US">
 <context>
+    <name>IntegrationPluginKacoBh10</name>
+    <message>
+        <location filename="../integrationpluginkacobh10.cpp" line="99"/>
+        <source>The MAC address is not known. Please reconfigure the thing.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../integrationpluginkacobh10.cpp" line="116"/>
+        <source>The host address is not known yet. Trying later again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>KacoBh10</name>
     <message>
         <location filename="../plugininfo.h" line="74"/>
@@ -11,8 +24,8 @@
     </message>
     <message>
         <location filename="../plugininfo.h" line="77"/>
-        <source>Battery capacity kWh</source>
-        <extracomment>The name of the ParamType (ThingClass: battery, Type: settings, ID: {fc65c6e4-8bcb-43c8-8b59-cef11ae60369})</extracomment>
+        <source>Battery capacity (if present) [kWh]</source>
+        <extracomment>The name of the ParamType (ThingClass: inverter, Type: thing, ID: {df490306-8fb5-4e9c-ac76-7788b0b47cab})</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
