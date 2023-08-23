@@ -63,7 +63,7 @@ private:
     QHash<Thing *, KacoClient *> m_clients;
     QHash<Thing *, NetworkDeviceMonitor *> m_monitors;
 
-    void setupKacoClient(ThingSetupInfo *info);
+    void setupKacoClient(Thing *thing, KacoClient *client);
 };
 
 #endif // INTEGRATIONPLUGINKACO_H
