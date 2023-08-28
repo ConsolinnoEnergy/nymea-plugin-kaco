@@ -1,3 +1,8 @@
+nymea-plugin-kaco (1.7.120-1) qa; urgency=medium
+  * Fixed mac address zero segfault.
+
+ -- Leonhard Heizinger <l.heizinger@consolinno.de>  Wed, 23 Aug 2023 10:28:48 +0100
+
 nymea-plugin-kaco (1.5.121) qa; urgency=medium
   * Added compatibility with Kaco BH10 firmware version 8.x
 

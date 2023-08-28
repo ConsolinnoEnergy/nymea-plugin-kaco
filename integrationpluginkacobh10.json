@@ -56,7 +56,17 @@
                             "type": "QString",
                             "defaultValue": "",
                             "readOnly": true
+                        },
+                        {
+                            "id": "df490306-8fb5-4e9c-ac76-7788b0b47cab",
+                            "name": "batteryCapacity",
+                            "displayName": "Battery capacity (if present) [kWh]",
+                            "type": "uint",
+                            "minValue": 0,
+                            "maxValue": 10000,
+                            "defaultValue": 0
                         }
+
                     ],
                     "stateTypes": [
                         {
@@ -369,20 +379,7 @@
                     "displayName": "Kaco Battery",
                     "createMethods": ["auto"],
                     "interfaces": ["energystorage", "connectable"],
-                    "settingsTypes": [
-                        {
-                            "id": "fc65c6e4-8bcb-43c8-8b59-cef11ae60369",
-                            "name": "capacity",
-                            "displayName": "Battery capacity kWh",
-                            "type": "uint",
-                            "minValue": 0,
-                            "maxValue": 10000,
-                            "defaultValue": 0
-                        }
-                    ],
-                    "paramTypes":[
-
-                    ],
+                    "paramTypes":[ ],
                     "stateTypes": [
                         {
                             "id": "2a08d28c-fb69-4a48-97dd-d801106c9a63",
