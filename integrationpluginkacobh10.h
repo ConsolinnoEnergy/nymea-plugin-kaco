@@ -34,6 +34,7 @@
 #include <QObject>
 
 #include <integrations/integrationplugin.h>
+#include <network/networkdevicemonitor.h>
 #include <plugintimer.h>
 
 #include "kacoclient.h"
@@ -56,9 +57,13 @@ public:
     void executeAction(ThingActionInfo *info) override;
     void thingRemoved(Thing *thing) override;
 
+    QHostAddress getHostAddress();
+
 private:
     QHash<Thing *, KacoClient *> m_clients;
+    QHash<Thing *, NetworkDeviceMonitor *> m_monitors;
 
+    void setupKacoClient(Thing *thing, KacoClient *client);
 };
 
 #endif // INTEGRATIONPLUGINKACO_H

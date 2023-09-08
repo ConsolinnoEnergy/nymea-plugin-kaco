@@ -41,6 +41,7 @@
 #include <sstream>
 
 #include "math.h"
+#include "integrationpluginkacobh10.h"
 
 KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QString &password, QObject *parent) :
     QObject(parent),
@@ -124,6 +125,11 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
     m_refreshTimer.setSingleShot(false);
     connect(&m_refreshTimer, &QTimer::timeout, this, &KacoClient::refresh);
 
+    // Reconnect timer. Tries every 30s to find the device again.
+    m_reconnectTimer.setInterval(30000);
+    m_reconnectTimer.setSingleShot(false);
+    connect(&m_reconnectTimer, &QTimer::timeout, this, &KacoClient::connectToDevice);
+
     // TCP socket
     m_socket = new QTcpSocket(this);
     connect(m_socket, &QTcpSocket::connected, this, [=](){
@@ -143,6 +149,7 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
         setState(StateNone);
         emit connectedChanged(false);
         QTimer::singleShot(2000, this, &KacoClient::connectToDevice);
+        m_reconnectTimer.start();
     });
 
     connect(m_socket, &QTcpSocket::readyRead, this, [=](){
@@ -389,12 +396,17 @@ float KacoClient::batteryPercentage() const
 
 void KacoClient::connectToDevice()
 {
+    //Check if address has changed.
+    QObject *obj = QObject::parent();
+    m_reconnectTimer.start();
+    m_hostAddress = qobject_cast<IntegrationPluginKacoBh10 *>(obj)->getHostAddress();
     m_socket->connectToHost(m_hostAddress.toString(), m_port);
 }
 
 void KacoClient::disconnectFromDevice()
 {
     m_socket->close();
+    m_reconnectTimer.stop();
 }
 
 void KacoClient::setState(State state)
@@ -513,6 +525,7 @@ void KacoClient::processResponse(const QByteArray &response)
     }
 
     emit connectedChanged(true);
+    m_reconnectTimer.stop();
 
     quint8 messageType;
     stream >> messageType;
