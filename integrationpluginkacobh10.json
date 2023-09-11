@@ -162,33 +162,6 @@
                             "defaultValue": 0.00
                         },
                         {
-                            "id": "44a6b03f-19a6-4d26-949d-a0342b6fd0e8",
-                            "name": "voltagePhaseA",
-                            "displayName": "Phase A voltage",
-                            "displayNameEvent": "Phase A volatage changed",
-                            "type": "double",
-                            "unit": "Volt",
-                            "defaultValue": 0.00
-                        },
-                        {
-                            "id": "5b349f6e-6e57-453e-957d-ac3196d53d0b",
-                            "name": "voltagePhaseB",
-                            "displayName": "Phase B voltage",
-                            "displayNameEvent": "Phase B voltage changed",
-                            "type": "double",
-                            "unit": "Volt",
-                            "defaultValue": 0.00
-                        },
-                        {
-                            "id": "61373dcd-be48-41b9-8cbe-c1c112451533",
-                            "name": "voltagePhaseC",
-                            "displayName": "Phase C voltage",
-                            "displayNameEvent": "Phase C voltage changed",
-                            "type": "double",
-                            "unit": "Volt",
-                            "defaultValue": 0.00
-                        },
-                        {
                             "id": "c54b3932-1dca-41f6-b172-1bc6e4efaebc",
                             "name": "frequency",
                             "displayName": "Frequency",
