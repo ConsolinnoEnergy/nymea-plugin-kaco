@@ -244,19 +244,7 @@ void IntegrationPluginKacoBh10::setupKacoClient(Thing *thing, KacoClient *client
         thing->setStateValue(inverterCurrentPowerPhaseCStateTypeId, -inverterPowerPhaseC);
     });
 
-    // Voltage
-
-    connect(client, &KacoClient::inverterGridVoltagePhaseAChanged, thing, [=](float inverterGridVoltagePhaseA){
-        thing->setStateValue(inverterVoltagePhaseAStateTypeId, inverterGridVoltagePhaseA);
-    });
-
-    connect(client, &KacoClient::inverterGridVoltagePhaseBChanged, thing, [=](float inverterGridVoltagePhaseB){
-        thing->setStateValue(inverterVoltagePhaseBStateTypeId, inverterGridVoltagePhaseB);
-    });
-
-    connect(client, &KacoClient::inverterGridVoltagePhaseCChanged, thing, [=](float inverterGridVoltagePhaseC){
-        thing->setStateValue(inverterVoltagePhaseCStateTypeId, inverterGridVoltagePhaseC);
-    });
+    // Frequency
 
     connect(client, &KacoClient::inverterFrequencyChanged, thing, [=](float frequency){
         thing->setStateValue(inverterFrequencyStateTypeId, frequency);
