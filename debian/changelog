@@ -1,3 +1,9 @@
+nymea-plugin-kaco (1.7.121-2) buster focal jammy; urgency=medium
+
+* Adapt to new versioning schema
+
+ -- Florian Knab <f.knab@consolinno.de> Thu, 19 Sep 2023 7:50:53 +0200
+
 nymea-plugin-kaco (1.7.121-1) qa; urgency=medium
   * Removed voltage states
 
