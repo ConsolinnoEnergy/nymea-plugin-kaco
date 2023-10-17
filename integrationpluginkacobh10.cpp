@@ -322,4 +322,10 @@ void IntegrationPluginKacoBh10::setupKacoClient(Thing *thing, KacoClient *client
             }
         }
     });
+
+    // On reconfigure, battery already exists and setupThing does not execute for the battery. In that case, set capacity here.
+    Things batteryThings = myThings().filterByParentId(thing->id()).filterByThingClassId(batteryThingClassId);
+    if (!batteryThings.isEmpty()) {
+        batteryThings.first()->setStateValue(batteryCapacityStateTypeId, thing->paramValue(inverterThingBatteryCapacityParamTypeId).toUInt());
+    }
 }
