@@ -1,3 +1,9 @@
+nymea-plugin-kaco (1.7.122) buster focal jammy; urgency=medium
+
+* Fix battery capacity not being set on reconfigure
+
+ -- Sebastian Ringer <s.ringer@consolinno.de> Fri, 3 Nov 2023 11:03:53 +0200
+
 nymea-plugin-kaco (1.7.121-2) buster focal jammy; urgency=medium
 
 * Adapt to new versioning schema
