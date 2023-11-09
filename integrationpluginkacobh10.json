@@ -41,6 +41,13 @@
                             "defaultValue": "user"
                         },
                         {
+                            "id": "5d8b8e1a-b0e4-42a0-a842-dff3652df24c",
+                            "name": "clampMeter",
+                            "displayName": "Meter is of clamp type",
+                            "type": "bool",
+                            "defaultValue": false
+                        },
+                        {
                             "id": "b6013e67-39d1-4154-906b-88ee5c779463",
                             "name": "macAddress",
                             "displayName": "MAC address",

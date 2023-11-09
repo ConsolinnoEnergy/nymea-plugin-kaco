@@ -269,25 +269,45 @@ void IntegrationPluginKacoBh10::setupKacoClient(Thing *thing, KacoClient *client
         Things meterThings = myThings().filterByParentId(thing->id()).filterByThingClassId(meterThingClassId);
         if (!meterThings.isEmpty()) {
 
-            meterThings.first()->setStateValue(meterCurrentPowerPhaseAStateTypeId, client->meterPowerInternalPhaseA());
-            meterThings.first()->setStateValue(meterCurrentPowerPhaseBStateTypeId, client->meterPowerInternalPhaseB());
-            meterThings.first()->setStateValue(meterCurrentPowerPhaseCStateTypeId, client->meterPowerInternalPhaseC());
+            // If meter uses clamps to measure current, need to use different registers.
+            bool meterIsClampType = thing->paramValue(inverterThingClampMeterParamTypeId).toBool();
+            qCDebug(dcKacoBh10()) << "Meter type is clamp:" << meterIsClampType;
+            if (meterIsClampType) {
+                meterThings.first()->setStateValue(meterCurrentPowerPhaseAStateTypeId, client->meterPowerPhaseA());
+                meterThings.first()->setStateValue(meterCurrentPowerPhaseBStateTypeId, client->meterPowerPhaseB());
+                meterThings.first()->setStateValue(meterCurrentPowerPhaseCStateTypeId, client->meterPowerPhaseC());
 
-            double currentPower{client->meterPowerInternalPhaseA() + client->meterPowerInternalPhaseB() + client->meterPowerInternalPhaseC()};
-            if (currentPower < 5 && currentPower > -5) {    // Kill small leaking currents
-                currentPower = 0;
+                // Calculate the current
+                meterThings.first()->setStateValue(meterCurrentPhaseAStateTypeId, client->meterPowerPhaseA() / client->meterVoltagePhaseA());
+                meterThings.first()->setStateValue(meterCurrentPhaseBStateTypeId, client->meterPowerPhaseB() / client->meterVoltagePhaseB());
+                meterThings.first()->setStateValue(meterCurrentPhaseCStateTypeId, client->meterPowerPhaseC() / client->meterVoltagePhaseC());
+
+                double currentPower{client->meterPowerPhaseA() + client->meterPowerPhaseB() + client->meterPowerPhaseC()};
+                if (currentPower < 5 && currentPower > -5) {    // Kill small leaking currents
+                    currentPower = 0;
+                }
+                meterThings.first()->setStateValue(meterCurrentPowerStateTypeId, currentPower);
+            } else {
+                meterThings.first()->setStateValue(meterCurrentPowerPhaseAStateTypeId, client->meterPowerInternalPhaseA());
+                meterThings.first()->setStateValue(meterCurrentPowerPhaseBStateTypeId, client->meterPowerInternalPhaseB());
+                meterThings.first()->setStateValue(meterCurrentPowerPhaseCStateTypeId, client->meterPowerInternalPhaseC());
+
+                // Calculate the current
+                meterThings.first()->setStateValue(meterCurrentPhaseAStateTypeId, client->meterPowerInternalPhaseA() / client->meterVoltagePhaseA());
+                meterThings.first()->setStateValue(meterCurrentPhaseBStateTypeId, client->meterPowerInternalPhaseB() / client->meterVoltagePhaseB());
+                meterThings.first()->setStateValue(meterCurrentPhaseCStateTypeId, client->meterPowerInternalPhaseC() / client->meterVoltagePhaseC());
+
+                double currentPower{client->meterPowerInternalPhaseA() + client->meterPowerInternalPhaseB() + client->meterPowerInternalPhaseC()};
+                if (currentPower < 5 && currentPower > -5) {    // Kill small leaking currents
+                    currentPower = 0;
+                }
+                meterThings.first()->setStateValue(meterCurrentPowerStateTypeId, currentPower);
             }
-            meterThings.first()->setStateValue(meterCurrentPowerStateTypeId, currentPower);
 
             meterThings.first()->setStateValue(meterVoltagePhaseAStateTypeId, client->meterVoltagePhaseA());
             meterThings.first()->setStateValue(meterVoltagePhaseBStateTypeId, client->meterVoltagePhaseB());
             meterThings.first()->setStateValue(meterVoltagePhaseCStateTypeId, client->meterVoltagePhaseC());
             meterThings.first()->setStateValue(meterFrequencyStateTypeId, client->meterFrequency());
-
-            // Calculate the current
-            meterThings.first()->setStateValue(meterCurrentPhaseAStateTypeId, client->meterPowerInternalPhaseA() / client->meterVoltagePhaseA());
-            meterThings.first()->setStateValue(meterCurrentPhaseBStateTypeId, client->meterPowerInternalPhaseB() / client->meterVoltagePhaseB());
-            meterThings.first()->setStateValue(meterCurrentPhaseCStateTypeId, client->meterPowerInternalPhaseC() / client->meterVoltagePhaseC());
 
             // Energy
             meterThings.first()->setStateValue(meterTotalEnergyConsumedStateTypeId, client->meterGridEnergyConsumedTotal());
