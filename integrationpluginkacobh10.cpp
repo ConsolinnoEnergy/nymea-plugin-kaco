@@ -137,11 +137,13 @@ void IntegrationPluginKacoBh10::setupThing(ThingSetupInfo *info)
 
         connect(monitor, &NetworkDeviceMonitor::reachableChanged, thing, [=](bool reachable){
             qCDebug(dcKacoBh10()) << "Network device monitor reachable changed for" << thing->name() << reachable;
-            if (reachable && !thing->stateValue("connected").toBool()) {
-                client->connectToDevice();
-            } else if (!reachable) {
-                // Disable reconnect. Connect the device once the monitor says it is reachable again.
-                client->disconnectFromDevice();
+            if (!thing->stateValue(inverterConnectedStateTypeId).toBool()) {
+                if (reachable) {
+                    client->connectToDevice();
+                } else {
+                    // Disable reconnect. Connect the device once the monitor says it is reachable again.
+                    client->disconnectFromDevice();
+                }
             }
         });
 
@@ -187,6 +189,9 @@ void IntegrationPluginKacoBh10::thingRemoved(Thing *thing)
         client->disconnectFromDevice();
         client->deleteLater();
     }
+    if (m_monitors.contains(thing)) {
+        hardwareManager()->networkDeviceDiscovery()->unregisterMonitor(m_monitors.take(thing));
+    }
 }
 
 QHostAddress IntegrationPluginKacoBh10::getHostAddress()
@@ -206,6 +211,18 @@ void IntegrationPluginKacoBh10::setupKacoClient(Thing *thing, KacoClient *client
             // Update all child devices
             foreach (Thing *thing, myThings().filterByParentId(thing->id())) {
                 thing->setStateValue("connected", connected);
+            }
+        }
+
+        if (!connected) {
+            if (m_monitors.contains(thing)) {
+                NetworkDeviceMonitor *monitor = m_monitors.value(thing);
+                bool monitorReachable = monitor->reachable();
+                qCDebug(dcKacoBh10()) << thing << "is not connected and monitor is" << monitorReachable;
+                if (!monitorReachable) {
+                    // Disable reconnect. Connect the device once the monitor says it is reachable again.
+                    client->disconnectFromDevice();
+                }
             }
         }
     });

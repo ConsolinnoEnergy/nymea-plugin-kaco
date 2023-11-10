@@ -205,7 +205,7 @@ private:
     QString m_firmwareVersion;
     QByteArray m_picRandomKey;
     quint32 m_clientId = 0;
-    uint m_lastPicTimestamp = 0;
+    quint16 m_lastPicTimestamp = 0;
     bool m_communicationVer8x = true;
     bool m_authorization = false;
 
