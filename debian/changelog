@@ -1,3 +1,13 @@
+nymea-plugin-kaco (1.7.123) buster focal jammy; urgency=medium
+
+* Fixed meters with clamp type sensors not being supported.
+* Changed update interval to 500 ms (was 1000ms before).
+* Reduced number of cached datapoints (should improve performance).
+* Fixed flip-flopping monitor resetting the connection.
+* Added more debug info.
+
+ -- Sebastian Ringer <s.ringer@consolinno.de> Do, 10 Nov 2023 13:16:53 +0200
+
 nymea-plugin-kaco (1.7.122) buster focal jammy; urgency=medium
 
 * Fix battery capacity not being set on reconfigure

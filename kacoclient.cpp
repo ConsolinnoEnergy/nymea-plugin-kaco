@@ -121,7 +121,7 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
     m_userPasswordHash = calculateStringHashCode(m_userPassword);
 
     // Refresh timer
-    m_refreshTimer.setInterval(1000);
+    m_refreshTimer.setInterval(500);
     m_refreshTimer.setSingleShot(false);
     connect(&m_refreshTimer, &QTimer::timeout, this, &KacoClient::refresh);
 
@@ -790,10 +790,13 @@ void KacoClient::processPicResponse(const QByteArray &message)
         qCDebug(dcKacoBh10()) << "- Client ID:" << byteArrayToHexString(clientId) << m_clientId;
     }
 
-    m_lastPicTimestamp = QDateTime::currentDateTime().toMSecsSinceEpoch() / 1000;
+    // Unsigned rollover is used intentionally here.
+    m_lastPicTimestamp = QDateTime::currentDateTime().toMSecsSinceEpoch();
+    qCDebug(dcKacoBh10()) << "Creating Timestamp:" << m_lastPicTimestamp;
 
     if (m_state == StateAuthenticate) {
         m_picCounter++;
+        qCDebug(dcKacoBh10()) << "State is authenticate, pic counter is:" << m_picCounter;
         if (m_picCounter >= 1) {
             // Important: set the user id to 2 after the first cycle
             m_userId = 2;
@@ -1469,8 +1472,11 @@ float KacoClient::convertEnergyToFloat(quint32 rawValue, uint offset, float scal
 
 bool KacoClient::picRefreshRequired()
 {
-    uint secondsSinceLastRefresh = (QDateTime::currentDateTime().toMSecsSinceEpoch() / 1000.0) - m_lastPicTimestamp;
-    return (secondsSinceLastRefresh) >= 5;
+    quint16 currentTime = QDateTime::currentDateTime().toMSecsSinceEpoch();
+    // Unsigned rollover is used intentionally here.
+    quint16 milliSecondsSinceLastRefresh = currentTime - m_lastPicTimestamp;
+    qCDebug(dcKacoBh10()) << "Checking pic refresh, milliseconds since last timestamp:" << milliSecondsSinceLastRefresh;
+    return (milliSecondsSinceLastRefresh) >= 5000;
 }
 
 void KacoClient::printHashCodes(const QStringList &properties)
