@@ -5,13 +5,13 @@
     "vendors": [
         {
             "name": "kacobh10",
-            "displayName": "Kaco BH10",
+            "displayName": "KACO hybrid",
             "id": "387e7968-467c-4ec6-ac1a-60484cb8d027",
             "thingClasses": [
                 {
                     "id": "93d3facb-5ef7-4aff-a7de-7d4ea5a207f3",
                     "name": "inverter",
-                    "displayName": "Kaco BH10 Inverter",
+                    "displayName": "KACO blueplanet hybrid 10.0 TL3",
                     "createMethods": ["discovery"],
                     "interfaces": [ "solarinverter", "connectable" ],
                     "providedInterfaces": [ "energymeter", "energystorage"],
