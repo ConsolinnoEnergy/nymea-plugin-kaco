@@ -773,7 +773,10 @@ void KacoClient::processPicResponse(const QByteArray &message)
                 if ((userId & 0b0100) == 0b0100) {
                     qCDebug(dcKacoBh10()) << "- Access Status: User Key Accepted.";
                 } else {
-                    qCWarning(dcKacoBh10()) << "- Access Status: User Key Reject.";
+                    // Changed from qCWarning to qCDebug. Apparently correct user key is not needed to get values
+                    // (did that change with recent firmware?). The warning messages were spamming the log, eating
+                    // up too much disk space.
+                    qCDebug(dcKacoBh10()) << "- Access Status: User Key Reject.";
                 }
             }
         } else {
