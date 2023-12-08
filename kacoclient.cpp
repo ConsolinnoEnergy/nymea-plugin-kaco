@@ -121,7 +121,7 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
     m_userPasswordHash = calculateStringHashCode(m_userPassword);
 
     // Refresh timer
-    m_refreshTimer.setInterval(500);
+    m_refreshTimer.setInterval(1000);
     m_refreshTimer.setSingleShot(false);
     connect(&m_refreshTimer, &QTimer::timeout, this, &KacoClient::refresh);
 
@@ -815,6 +815,7 @@ void KacoClient::processPicResponse(const QByteArray &message)
         setState(StateRefreshData);
         m_refreshTimer.stop();
         m_refreshTimer.start();
+        refresh();
         return;
     }
 }
