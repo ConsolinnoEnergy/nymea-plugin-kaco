@@ -1,4 +1,11 @@
-nymea-plugin-kaco (1.7.123) buster focal jammy; urgency=medium
+nymea-plugin-kaco (1.7.125) buster focal jammy; urgency=medium
+
+* Quick fix to prevent log spam because of incorrect user key.
+* Improved data polling interval.
+
+ -- Sebastian Ringer <s.ringer@consolinno.de> Fr, 8 Dec 2023 15:40:53 +0200
+
+nymea-plugin-kaco (1.7.124) buster focal jammy; urgency=medium
 
 * Changed name in install wizard to better reflect official name.
 

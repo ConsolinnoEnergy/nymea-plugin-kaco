@@ -121,7 +121,7 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
     m_userPasswordHash = calculateStringHashCode(m_userPassword);
 
     // Refresh timer
-    m_refreshTimer.setInterval(500);
+    m_refreshTimer.setInterval(1000);
     m_refreshTimer.setSingleShot(false);
     connect(&m_refreshTimer, &QTimer::timeout, this, &KacoClient::refresh);
 
@@ -773,7 +773,10 @@ void KacoClient::processPicResponse(const QByteArray &message)
                 if ((userId & 0b0100) == 0b0100) {
                     qCDebug(dcKacoBh10()) << "- Access Status: User Key Accepted.";
                 } else {
-                    qCWarning(dcKacoBh10()) << "- Access Status: User Key Reject.";
+                    // Changed from qCWarning to qCDebug. Apparently correct user key is not needed to get values
+                    // (did that change with recent firmware?). The warning messages were spamming the log, eating
+                    // up too much disk space.
+                    qCDebug(dcKacoBh10()) << "- Access Status: User Key Reject.";
                 }
             }
         } else {
@@ -812,6 +815,7 @@ void KacoClient::processPicResponse(const QByteArray &message)
         setState(StateRefreshData);
         m_refreshTimer.stop();
         m_refreshTimer.start();
+        refresh();
         return;
     }
 }
