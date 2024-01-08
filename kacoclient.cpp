@@ -773,7 +773,10 @@ void KacoClient::processPicResponse(const QByteArray &message)
                 if ((userId & 0b0100) == 0b0100) {
                     qCDebug(dcKacoBh10()) << "- Access Status: User Key Accepted.";
                 } else {
-                    qCWarning(dcKacoBh10()) << "- Access Status: User Key Reject.";
+                    // Changed from qCWarning to qCDebug. Apparently correct user key is not needed to get values
+                    // (did that change with recent firmware?). The warning messages were spamming the log, eating
+                    // up too much disk space.
+                    qCDebug(dcKacoBh10()) << "- Access Status: User Key Reject.";
                 }
             }
         } else {
@@ -790,10 +793,13 @@ void KacoClient::processPicResponse(const QByteArray &message)
         qCDebug(dcKacoBh10()) << "- Client ID:" << byteArrayToHexString(clientId) << m_clientId;
     }
 
-    m_lastPicTimestamp = QDateTime::currentDateTime().toMSecsSinceEpoch() / 1000;
+    // Unsigned rollover is used intentionally here.
+    m_lastPicTimestamp = QDateTime::currentDateTime().toMSecsSinceEpoch();
+    qCDebug(dcKacoBh10()) << "Creating Timestamp:" << m_lastPicTimestamp;
 
     if (m_state == StateAuthenticate) {
         m_picCounter++;
+        qCDebug(dcKacoBh10()) << "State is authenticate, pic counter is:" << m_picCounter;
         if (m_picCounter >= 1) {
             // Important: set the user id to 2 after the first cycle
             m_userId = 2;
@@ -809,6 +815,7 @@ void KacoClient::processPicResponse(const QByteArray &message)
         setState(StateRefreshData);
         m_refreshTimer.stop();
         m_refreshTimer.start();
+        refresh();
         return;
     }
 }
@@ -1469,8 +1476,11 @@ float KacoClient::convertEnergyToFloat(quint32 rawValue, uint offset, float scal
 
 bool KacoClient::picRefreshRequired()
 {
-    uint secondsSinceLastRefresh = (QDateTime::currentDateTime().toMSecsSinceEpoch() / 1000.0) - m_lastPicTimestamp;
-    return (secondsSinceLastRefresh) >= 5;
+    quint16 currentTime = QDateTime::currentDateTime().toMSecsSinceEpoch();
+    // Unsigned rollover is used intentionally here.
+    quint16 milliSecondsSinceLastRefresh = currentTime - m_lastPicTimestamp;
+    qCDebug(dcKacoBh10()) << "Checking pic refresh, milliseconds since last timestamp:" << milliSecondsSinceLastRefresh;
+    return (milliSecondsSinceLastRefresh) >= 5000;
 }
 
 void KacoClient::printHashCodes(const QStringList &properties)
