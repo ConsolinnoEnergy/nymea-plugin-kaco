@@ -1,3 +1,32 @@
+nymea-plugin-kaco (1.7.125) buster focal jammy; urgency=medium
+
+* Quick fix to prevent log spam because of incorrect user key.
+* Improved data polling interval.
+
+ -- Sebastian Ringer <s.ringer@consolinno.de> Fr, 8 Dec 2023 15:40:53 +0200
+
+nymea-plugin-kaco (1.7.124) buster focal jammy; urgency=medium
+
+* Changed name in install wizard to better reflect official name.
+
+ -- Sebastian Ringer <s.ringer@consolinno.de> Tue, 28 Nov 2023 17:03:53 +0200
+
+nymea-plugin-kaco (1.7.123) buster focal jammy; urgency=medium
+
+* Fixed meters with clamp type sensors not being supported.
+* Changed update interval to 500 ms (was 1000ms before).
+* Reduced number of cached datapoints (should improve performance).
+* Fixed flip-flopping monitor resetting the connection.
+* Added more debug info.
+
+ -- Sebastian Ringer <s.ringer@consolinno.de> Do, 10 Nov 2023 13:16:53 +0200
+
+nymea-plugin-kaco (1.7.122) buster focal jammy; urgency=medium
+
+* Fix battery capacity not being set on reconfigure
+
+ -- Sebastian Ringer <s.ringer@consolinno.de> Fri, 3 Nov 2023 11:03:53 +0200
+
 nymea-plugin-kaco (1.7.121-2) buster focal jammy; urgency=medium
 
 * Adapt to new versioning schema
