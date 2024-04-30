@@ -345,7 +345,9 @@ void IntegrationPluginKacoBh10::setupKacoClient(Thing *thing, KacoClient *client
                 batteryThings.first()->setStateValue(batteryBatteryCriticalStateTypeId, client->batteryPercentage() <= 10);
 
                 float power = client->batteryPower();
-                if (power < 1 && power > -1) {
+
+                // Filter out small leakage <10 watt.
+                if (power < 10 && power > -10) {
                     power = 0;
                 }
                 batteryThings.first()->setStateValue(batteryCurrentPowerStateTypeId, power);

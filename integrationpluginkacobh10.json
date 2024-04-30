@@ -397,7 +397,8 @@
                             "displayName": "Battery critical",
                             "displayNameEvent": "Battery critical changed",
                             "type": "bool",
-                            "defaultValue": false
+                            "defaultValue": false,
+                            "cached": false
                         },
                         {
                             "id": "3fc1b941-b982-44d9-9101-8f5247a36d37",
@@ -408,7 +409,8 @@
                             "unit": "Percentage",
                             "minValue": 0,
                             "maxValue": 100,
-                            "defaultValue": 0
+                            "defaultValue": 0,
+                            "cached": true
                         },
                         {
                             "id": "edc654c7-2a33-46ad-b64b-b0427432dfff",
@@ -417,7 +419,8 @@
                             "displayNameEvent": "Charging state changed",
                             "type": "QString",
                             "possibleValues": ["idle", "charging", "discharging"],
-                            "defaultValue": "idle"
+                            "defaultValue": "idle",
+                            "cached": false
                         },
                         {
                             "id": "b625aa0a-a55c-473a-bd36-c969cd028a20",
