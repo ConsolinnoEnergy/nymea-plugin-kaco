@@ -48,6 +48,13 @@
                             "defaultValue": false
                         },
                         {
+                            "id": "5669d608-614c-4d96-9b71-9c7210c05ccb",
+                            "name": "noMeter",
+                            "displayName": "No meter connected",
+                            "type": "bool",
+                            "defaultValue": false
+                        },
+                        {
                             "id": "b6013e67-39d1-4154-906b-88ee5c779463",
                             "name": "macAddress",
                             "displayName": "MAC address",

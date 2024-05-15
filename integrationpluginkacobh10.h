@@ -57,8 +57,6 @@ public:
     void executeAction(ThingActionInfo *info) override;
     void thingRemoved(Thing *thing) override;
 
-    QHostAddress getHostAddress();
-
 private:
     QHash<Thing *, KacoClient *> m_clients;
     QHash<Thing *, NetworkDeviceMonitor *> m_monitors;
