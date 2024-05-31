@@ -43,14 +43,14 @@
                         {
                             "id": "5d8b8e1a-b0e4-42a0-a842-dff3652df24c",
                             "name": "clampMeter",
-                            "displayName": "Meter is of clamp type",
+                            "displayName": "Hy-Switch with external current sensors",
                             "type": "bool",
                             "defaultValue": false
                         },
                         {
                             "id": "5669d608-614c-4d96-9b71-9c7210c05ccb",
                             "name": "noMeter",
-                            "displayName": "No meter connected",
+                            "displayName": "No Hy-Switch connected",
                             "type": "bool",
                             "defaultValue": false
                         },

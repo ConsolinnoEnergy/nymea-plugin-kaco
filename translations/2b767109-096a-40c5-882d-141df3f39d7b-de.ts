@@ -132,63 +132,63 @@ The name of the StateType ({c54b3932-1dca-41f6-b172-1bc6e4efaebc}) of ThingClass
     </message>
     <message>
         <location filename="../plugininfo.h" line="139"/>
+        <source>Hy-Switch with external current sensors</source>
+        <extracomment>The name of the ParamType (ThingClass: inverter, Type: thing, ID: {5d8b8e1a-b0e4-42a0-a842-dff3652df24c})</extracomment>
+        <translation>Hy-Switch mit externen Stromsensoren</translation>
+    </message>
+    <message>
+        <location filename="../plugininfo.h" line="142"/>
         <source>IP address</source>
         <extracomment>The name of the ParamType (ThingClass: inverter, Type: thing, ID: {85341bb8-1faa-423a-a196-9821d962c779})</extracomment>
         <translation>IP Adresse</translation>
     </message>
     <message>
-        <location filename="../plugininfo.h" line="142"/>
+        <location filename="../plugininfo.h" line="145"/>
         <source>Instantaneous power</source>
         <extracomment>The name of the StateType ({b625aa0a-a55c-473a-bd36-c969cd028a20}) of ThingClass battery</extracomment>
         <translation>Leistung</translation>
     </message>
     <message>
-        <location filename="../plugininfo.h" line="145"/>
+        <location filename="../plugininfo.h" line="148"/>
         <source>KACO blueplanet hybrid 10.0 TL3</source>
         <extracomment>The name of the ThingClass ({93d3facb-5ef7-4aff-a7de-7d4ea5a207f3})</extracomment>
         <translation>KACO blueplanet hybrid 10.0 TL3</translation>
     </message>
     <message>
-        <location filename="../plugininfo.h" line="148"/>
+        <location filename="../plugininfo.h" line="151"/>
         <source>KACO hybrid</source>
         <extracomment>The name of the vendor ({387e7968-467c-4ec6-ac1a-60484cb8d027})</extracomment>
         <translation>KACO hybrid</translation>
     </message>
     <message>
-        <location filename="../plugininfo.h" line="151"/>
+        <location filename="../plugininfo.h" line="154"/>
         <source>Kaco BH10</source>
         <extracomment>The name of the plugin KacoBh10 ({2b767109-096a-40c5-882d-141df3f39d7b})</extracomment>
         <translation>Kaco BH10</translation>
     </message>
     <message>
-        <location filename="../plugininfo.h" line="154"/>
+        <location filename="../plugininfo.h" line="157"/>
         <source>Kaco Battery</source>
         <extracomment>The name of the ThingClass ({113c7d91-9e5a-44b7-9359-d5b5bd3bfc08})</extracomment>
         <translation>Kaco Batterie</translation>
     </message>
     <message>
-        <location filename="../plugininfo.h" line="157"/>
+        <location filename="../plugininfo.h" line="160"/>
         <source>Kaco Energy Meter</source>
         <extracomment>The name of the ThingClass ({0fe4d494-7582-4c60-8e06-53393ccbc172})</extracomment>
         <translation>Kaco Meter</translation>
     </message>
     <message>
-        <location filename="../plugininfo.h" line="160"/>
+        <location filename="../plugininfo.h" line="163"/>
         <source>MAC address</source>
         <extracomment>The name of the ParamType (ThingClass: inverter, Type: thing, ID: {b6013e67-39d1-4154-906b-88ee5c779463})</extracomment>
         <translation>MAC Adresse</translation>
     </message>
     <message>
-        <location filename="../plugininfo.h" line="163"/>
-        <source>Meter is of clamp type</source>
-        <extracomment>The name of the ParamType (ThingClass: inverter, Type: thing, ID: {5d8b8e1a-b0e4-42a0-a842-dff3652df24c})</extracomment>
-        <translation>Zähler hat Klappwandler</translation>
-    </message>
-    <message>
         <location filename="../plugininfo.h" line="166"/>
-        <source>No meter connected</source>
+        <source>No Hy-Switch connected</source>
         <extracomment>The name of the ParamType (ThingClass: inverter, Type: thing, ID: {5669d608-614c-4d96-9b71-9c7210c05ccb})</extracomment>
-        <translation>Kein Zähler verbunden</translation>
+        <translation>Kein Hy-Switch angeschlossen</translation>
     </message>
     <message>
         <location filename="../plugininfo.h" line="169"/>
