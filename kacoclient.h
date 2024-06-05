@@ -107,6 +107,8 @@ public:
     float batteryVoltage() const;
     float batteryPercentage() const;
 
+    void setHostAddress(QHostAddress hostAddress);
+
 public slots:
     void connectToDevice();
     void disconnectFromDevice();
