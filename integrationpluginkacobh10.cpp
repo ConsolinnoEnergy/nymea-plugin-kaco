@@ -56,7 +56,7 @@ void IntegrationPluginKacoBh10::discoverThings(ThingDiscoveryInfo *info)
 
             // Check if we already have set up this device
             Things existingThings = myThings().filterByParam(inverterThingSerialNumberParamTypeId, result.serialNumber);
-            if (existingThings.count() == 1) {
+            if (existingThings.count() > 0) {
                 qCDebug(dcKacoBh10()) << "This thing already exists in the system." << existingThings.first() << result.serialNumber;
                 descriptor.setThingId(existingThings.first()->id());
             }
@@ -95,7 +95,7 @@ void IntegrationPluginKacoBh10::setupThing(ThingSetupInfo *info)
         // will return a nullpointer. So need to test for zero mac address, to not get a null pointer monitor.
         MacAddress macAddress = MacAddress(thing->paramValue(inverterThingMacAddressParamTypeId).toString());
         if (macAddress.isNull()) {
-            qCWarning(dcKacoBh10()) << "The configured mac address is not valid" << thing->params();
+            qCWarning(dcKacoBh10()) << thing->name() << "The configured mac address is not valid" << thing->params();
             info->finish(Thing::ThingErrorInvalidParameter, QT_TR_NOOP("The MAC address is not known. Please reconfigure the thing."));
             return;
         }
@@ -104,27 +104,27 @@ void IntegrationPluginKacoBh10::setupThing(ThingSetupInfo *info)
         m_monitors.insert(thing, monitor);
         connect(info, &ThingSetupInfo::aborted, monitor, [=](){
             if (m_monitors.contains(thing)) {
-                qCDebug(dcKacoBh10()) << "Unregistering monitor because setup has been aborted.";
+                qCDebug(dcKacoBh10()) << thing->name() << "Unregistering monitor because setup has been aborted.";
                 hardwareManager()->networkDeviceDiscovery()->unregisterMonitor(m_monitors.take(thing));
             }
         });
 
         QHostAddress hostAddress = monitor->networkDeviceInfo().address();
         if (hostAddress.isNull()) {
-            qCWarning(dcKacoBh10()) << "Cannot set up thing. The host address is not known yet...";
+            qCWarning(dcKacoBh10()) << thing->name() << "Cannot set up thing. The host address is not known yet...";
             hardwareManager()->networkDeviceDiscovery()->unregisterMonitor(m_monitors.take(thing));
             info->finish(Thing::ThingErrorHardwareFailure, QT_TR_NOOP("The host address is not known yet. Trying later again."));
             return;
         }
         quint16 port = thing->paramValue(inverterThingPortParamTypeId).toUInt();
         QString userKey = thing->paramValue(inverterThingUserKeyParamTypeId).toString();
-        qCDebug(dcKacoBh10()) << "Setting up Kaco client on" << hostAddress.toString() << port << "with user key:" << userKey;;
-        KacoClient *client = new KacoClient(hostAddress, port, userKey, this);
+        qCDebug(dcKacoBh10()) << thing->name() << "Setting up Kaco client on" << hostAddress.toString() << port << "with user key:" << userKey;;
+        KacoClient *client = new KacoClient(hostAddress, port, userKey, thing);
         setupKacoClient(thing, client);
         m_clients.insert(thing, client);
         connect(info, &ThingSetupInfo::aborted, client, [=](){
             if (m_clients.contains(thing)) {
-                qCDebug(dcKacoBh10()) << "Cleaning up client because setup has been aborted.";
+                qCDebug(dcKacoBh10()) << thing->name() << "Cleaning up client because setup has been aborted.";
                 KacoClient *client = m_clients.take(thing);
                 client->disconnectFromDevice();
                 client->deleteLater();
@@ -135,14 +135,41 @@ void IntegrationPluginKacoBh10::setupThing(ThingSetupInfo *info)
             client->connectToDevice();
         }
 
-        connect(monitor, &NetworkDeviceMonitor::reachableChanged, thing, [=](bool reachable){
-            qCDebug(dcKacoBh10()) << "Network device monitor reachable changed for" << thing->name() << reachable;
-            if (!thing->stateValue(inverterConnectedStateTypeId).toBool()) {
-                if (reachable) {
-                    client->connectToDevice();
-                } else {
-                    // Disable reconnect. Connect the device once the monitor says it is reachable again.
-                    client->disconnectFromDevice();
+        connect(monitor, &NetworkDeviceMonitor::reachableChanged, thing, [=](bool monitorReachable){
+            qCDebug(dcKacoBh10()) << thing->name() << "Network device monitor reachable changed to" << monitorReachable;
+
+            // Check if m_monitors and m_clients contain the thing. If not, the thing is in the process of getting removed and this code should not execute.
+            if (m_monitors.contains(thing) && m_clients.contains(thing)) {
+
+                // The monitor is not very reliable. Sometimes it says monitor is not reachable, even when the connection ist still working.
+                // So we need to test if the thing is actually not connected before triggering a reconnect. Don't reconnect when the connection is actually working.
+                if (!thing->stateValue(inverterConnectedStateTypeId).toBool()) {
+                    if (monitorReachable) {
+
+                        // Communication is not working. Monitor says the device is reachable. Set IP again (maybe it changed), then reconnect.
+                        QHostAddress hostAddress = monitor->networkDeviceInfo().address();
+                        if (hostAddress.isNull()) {
+                            qCWarning(dcKacoBh10()) << thing->name() << "The monitor does not provide a valid host address. Using last known address instead.";
+                            hostAddress.setAddress(thing->paramValue(inverterThingHostAddressParamTypeId).toString());
+                        } else {
+
+                            // Check if IP has changed. If yes, store new IP in config.
+                            QString hostAddressInConfig = thing->paramValue(inverterThingHostAddressParamTypeId).toString();
+                            QString hostAddressFromMonitor = hostAddress.toString();
+                            if (hostAddressFromMonitor != hostAddressInConfig) {
+                                thing->setParamValue(inverterThingHostAddressParamTypeId, hostAddressFromMonitor);
+                            }
+                        }
+                        if (hostAddress.isNull()) {
+                            qCWarning(dcKacoBh10()) << thing->name() << "Last known address is not available or invalid. Can't open connection to inverter.";
+                        } else {
+                            client->setHostAddress(hostAddress);
+                            client->connectToDevice();
+                        }
+                    } else {
+                        // Disable reconnect. Connect the device once the monitor says it is reachable again.
+                        client->disconnectFromDevice();
+                    }
                 }
             }
         });
@@ -169,11 +196,14 @@ void IntegrationPluginKacoBh10::setupThing(ThingSetupInfo *info)
 void IntegrationPluginKacoBh10::postSetupThing(Thing *thing)
 {
     if (thing->thingClassId() == inverterThingClassId) {
-        // Check if w have to set up a child meter for this inverter connection
-        if (myThings().filterByParentId(thing->id()).filterByThingClassId(meterThingClassId).isEmpty()) {
-            qCDebug(dcKacoBh10()) << "Setup new meter for" << thing;
+        // Check if w have to set up a child meter for this inverter connection. Meter can be disabled in config, so check that.
+        bool noMeter = thing->paramValue(inverterThingNoMeterParamTypeId).toBool();
+        qCDebug(dcKacoBh10()) << thing->name() << "NoMeter flag:" << noMeter;
+        if (!noMeter && myThings().filterByParentId(thing->id()).filterByThingClassId(meterThingClassId).isEmpty()) {
+            qCDebug(dcKacoBh10()) << thing->name() << "Setup new meter";
             emit autoThingsAppeared(ThingDescriptors() << ThingDescriptor(meterThingClassId, "Kaco Energy Meter", QString(), thing->id()));
         }
+
     }
 }
 
@@ -194,17 +224,10 @@ void IntegrationPluginKacoBh10::thingRemoved(Thing *thing)
     }
 }
 
-QHostAddress IntegrationPluginKacoBh10::getHostAddress()
-{
-    // There can only be one inverter.
-    Thing *inverterThing = myThings().filterByThingClassId(inverterThingClassId).first();
-    return m_monitors.value(inverterThing)->networkDeviceInfo().address();
-}
-
 void IntegrationPluginKacoBh10::setupKacoClient(Thing *thing, KacoClient *client)
 {
     connect(client, &KacoClient::connectedChanged, thing, [=](bool connected){
-        qCDebug(dcKacoBh10()) << thing << "connected changed" << connected;
+        qCDebug(dcKacoBh10()) << thing->name() << "connected changed" << connected;
         if (thing->stateValue(inverterConnectedStateTypeId).toBool() != connected) {
             thing->setStateValue(inverterConnectedStateTypeId, connected);
 
@@ -215,13 +238,36 @@ void IntegrationPluginKacoBh10::setupKacoClient(Thing *thing, KacoClient *client
         }
 
         if (!connected) {
-            if (m_monitors.contains(thing)) {
+            // Check if m_monitors and m_clients contain the thing. If not, the thing is in the process of getting removed and this code should not execute.
+            if (m_monitors.contains(thing) && m_clients.contains(thing)) {
                 NetworkDeviceMonitor *monitor = m_monitors.value(thing);
                 bool monitorReachable = monitor->reachable();
-                qCDebug(dcKacoBh10()) << thing << "is not connected and monitor is" << monitorReachable;
+                qCDebug(dcKacoBh10()) << thing->name() << "is not connected and monitor is" << monitorReachable;
                 if (!monitorReachable) {
                     // Disable reconnect. Connect the device once the monitor says it is reachable again.
                     client->disconnectFromDevice();
+                } else {
+
+                    // Communication is not working. Monitor says the device is reachable. Set IP again (maybe it changed), then reconnect.
+                    QHostAddress hostAddress = monitor->networkDeviceInfo().address();
+                    if (hostAddress.isNull()) {
+                        qCWarning(dcKacoBh10()) << thing->name() << "The monitor does not provide a valid host address. Using last known address instead.";
+                        hostAddress.setAddress(thing->paramValue(inverterThingHostAddressParamTypeId).toString());
+                    } else {
+
+                        // Check if IP has changed. If yes, store new IP in config.
+                        QString hostAddressInConfig = thing->paramValue(inverterThingHostAddressParamTypeId).toString();
+                        QString hostAddressFromMonitor = hostAddress.toString();
+                        if (hostAddressFromMonitor != hostAddressInConfig) {
+                            thing->setParamValue(inverterThingHostAddressParamTypeId, hostAddressFromMonitor);
+                        }
+                    }
+                    if (hostAddress.isNull()) {
+                        qCWarning(dcKacoBh10()) << thing->name() << "Last known address is not available or invalid. Can't open connection to inverter.";
+                    } else {
+                        client->setHostAddress(hostAddress);
+                        client->connectToDevice();
+                    }
                 }
             }
         }
@@ -288,7 +334,7 @@ void IntegrationPluginKacoBh10::setupKacoClient(Thing *thing, KacoClient *client
 
             // If meter uses clamps to measure current, need to use different registers.
             bool meterIsClampType = thing->paramValue(inverterThingClampMeterParamTypeId).toBool();
-            qCDebug(dcKacoBh10()) << "Meter type is clamp:" << meterIsClampType;
+            qCDebug(dcKacoBh10()) << thing->name() << "Meter type is clamp:" << meterIsClampType;
             if (meterIsClampType) {
                 meterThings.first()->setStateValue(meterCurrentPowerPhaseAStateTypeId, client->meterPowerPhaseA());
                 meterThings.first()->setStateValue(meterCurrentPowerPhaseBStateTypeId, client->meterPowerPhaseB());
@@ -338,14 +384,16 @@ void IntegrationPluginKacoBh10::setupKacoClient(Thing *thing, KacoClient *client
 
             if (batteryThings.isEmpty()) {
                 // No battery set up yet. Need to create it.
-                qCDebug(dcKacoBh10()) << "Setup new battery for" << thing;
+                qCDebug(dcKacoBh10()) << thing->name() << "Setup new battery";
                 emit autoThingsAppeared(ThingDescriptors() << ThingDescriptor(batteryThingClassId, "Kaco Battery", QString(), thing->id()));
             } else {
                 batteryThings.first()->setStateValue(batteryBatteryLevelStateTypeId, batterySoc);
                 batteryThings.first()->setStateValue(batteryBatteryCriticalStateTypeId, client->batteryPercentage() <= 10);
 
                 float power = client->batteryPower();
-                if (power < 1 && power > -1) {
+
+                // Filter out small leakage <10 watt.
+                if (power < 10 && power > -10) {
                     power = 0;
                 }
                 batteryThings.first()->setStateValue(batteryCurrentPowerStateTypeId, power);

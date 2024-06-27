@@ -105,8 +105,11 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
         m_propertyHashes.insert(calculateStringHashCode(property) & 0xffff, property);
 
     m_meterProperties << "dd.e_inverter_inj";
+    m_meterProperties << "dd.e_inv_feedin";     // Test
     m_meterProperties << "dd.e_inverter_cons";
+    m_meterProperties << "dd.e_inv_cons";       // Test
     m_meterProperties << "dd.e_grid_inj";
+    m_meterProperties << "dd.e_grid_feedin";    // Test
     m_meterProperties << "dd.e_grid_cons";
     m_meterProperties << "dd.e_compensation";
     m_meterProperties << "dd.q_acc";
@@ -396,10 +399,7 @@ float KacoClient::batteryPercentage() const
 
 void KacoClient::connectToDevice()
 {
-    //Check if address has changed.
-    QObject *obj = QObject::parent();
     m_reconnectTimer.start();
-    m_hostAddress = qobject_cast<IntegrationPluginKacoBh10 *>(obj)->getHostAddress();
     m_socket->connectToHost(m_hostAddress.toString(), m_port);
 }
 
@@ -407,6 +407,11 @@ void KacoClient::disconnectFromDevice()
 {
     m_socket->close();
     m_reconnectTimer.stop();
+}
+
+void KacoClient::setHostAddress(QHostAddress hostAddress)
+{
+    m_hostAddress = hostAddress;
 }
 
 void KacoClient::setState(State state)
@@ -949,6 +954,21 @@ void KacoClient::processInverterResponse(const QByteArray &message)
                 emit meterInverterEnergyReturnedTotalChanged(m_meterInverterEnergyReturnedTotal);
             }
 
+        } else if (paramHash == m_propertyHashes.key("dd.e_inv_feedin")) {   // Test
+
+            // Meter consumed inverter
+            stream >> paramValueRaw;
+            float meterInverterEnergyReturnedToday = convertEnergyToFloat(paramValueRaw, 16, 240000.0)/ 1000.0;
+            qCDebug(dcKacoBh10()) << "Meter inverter consumed today (test e_inv_feedin)" << meterInverterEnergyReturnedToday << "kWh";
+
+            stream >> paramValueRaw;
+            float meterInverterEnergyReturnedMonth = convertEnergyToFloat(paramValueRaw, 16, 7200000.0) / 1000.0;
+            qCDebug(dcKacoBh10()) << "Meter inverter consumed this month (test e_inv_feedin)" << meterInverterEnergyReturnedMonth << "kWh";
+
+            stream >> paramValueRaw;
+            float meterInverterEnergyReturnedTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
+            qCDebug(dcKacoBh10()) << "Meter inverter consumed total (test e_inv_feedin)" << meterInverterEnergyReturnedTotal << "kWh";
+
         } else if (paramHash == m_propertyHashes.key("dd.e_inverter_cons")) {
 
             // Meter consumed inverter
@@ -975,6 +995,21 @@ void KacoClient::processInverterResponse(const QByteArray &message)
                 m_meterInverterEnergyConsumedTotal = meterInverterEnergyConsumedTotal;
                 emit meterInverterEnergyConsumedTotalChanged(m_meterInverterEnergyConsumedTotal);
             }
+
+        } else if (paramHash == m_propertyHashes.key("dd.e_inv_cons")) {    // Test
+
+            // Meter consumed inverter
+            stream >> paramValueRaw;
+            float meterInverterEnergyConsumedToday = convertEnergyToFloat(paramValueRaw, 16, 240000.0)/ 1000.0;
+            qCDebug(dcKacoBh10()) << "Meter inverter consumed today (test e_inv_cons)" << meterInverterEnergyConsumedToday << "kWh";
+
+            stream >> paramValueRaw;
+            float meterInverterEnergyConsumedMonth = convertEnergyToFloat(paramValueRaw, 16, 7200000.0) / 1000.0;
+            qCDebug(dcKacoBh10()) << "Meter inverter consumed this month (test e_inv_cons)" << meterInverterEnergyConsumedMonth << "kWh";
+
+            stream >> paramValueRaw;
+            float meterInverterEnergyConsumedTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 1000.0;
+            qCDebug(dcKacoBh10()) << "Meter inverter consumed total (test e_inv_cons)" << meterInverterEnergyConsumedTotal << "kWh";
 
         } else if (paramHash == m_propertyHashes.key("dd.e_grid_inj")) {
 
@@ -1003,6 +1038,22 @@ void KacoClient::processInverterResponse(const QByteArray &message)
                 m_meterGridEnergyReturnedTotal = meterGridEnergyReturnedTotal;
                 emit meterGridEnergyReturnedTotalChanged(m_meterGridEnergyReturnedTotal);
             }
+
+        } else if (paramHash == m_propertyHashes.key("dd.e_grid_feedin")) {    // Test
+
+            // Meter grid feed in
+            stream >> paramValueRaw;
+            float meterGridEnergyReturnedToday = convertEnergyToFloat(paramValueRaw, 16, 2400000.0) / 1000.0;
+            qCDebug(dcKacoBh10()) << "Meter grid feed in today (test e_grid_feedin)" << meterGridEnergyReturnedToday << "kWh";
+
+            stream >> paramValueRaw;
+            float meterGridEnergyReturnedMonth = convertEnergyToFloat(paramValueRaw, 16, 7.2E7) / 1000.0;
+            qCDebug(dcKacoBh10()) << "Meter grid feed in this month (test e_grid_feedin)" << meterGridEnergyReturnedMonth << "kWh";
+
+            stream >> paramValueRaw;
+            // Note: for some reason this value was wrong by factor 10
+            float meterGridEnergyReturnedTotal = convertEnergyToFloat(paramValueRaw, 32, 8.76E7) / 100.0;
+            qCDebug(dcKacoBh10()) << "Meter grid feed in total (test e_grid_feedin)" << meterGridEnergyReturnedTotal << "kWh";
 
         } else if (paramHash == m_propertyHashes.key("dd.e_grid_cons")) {
 
