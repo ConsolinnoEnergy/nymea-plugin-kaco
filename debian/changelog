@@ -1,3 +1,16 @@
+nymea-plugin-kaco (1.7.127) buster focal jammy; urgency=medium
+
+* Added support for multiple inverters.
+
+ -- Sebastian Ringer <s.ringer@consolinno.de> Wed, 15 May 2024 16:53:53 +0200
+
+nymea-plugin-kaco (1.7.126) buster focal jammy; urgency=medium
+
+* Reduced unnecessary caching of states.
+* Battery won't display small power fluctuations <10 watt, to have a cleaner history.
+
+ -- Sebastian Ringer <s.ringer@consolinno.de> Tue, 30 Apr 2024 16:40:53 +0200
+
 nymea-plugin-kaco (1.7.125) buster focal jammy; urgency=medium
 
 * Quick fix to prevent log spam because of incorrect user key.
