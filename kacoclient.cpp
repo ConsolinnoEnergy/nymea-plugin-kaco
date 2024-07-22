@@ -61,11 +61,11 @@ KacoClient::KacoClient(const QHostAddress &hostAddress, quint16 port, const QStr
     foreach (const QString &property, m_statusProperties)
         m_propertyHashes.insert(calculateStringHashCode(property) & 0xffff, property);
 
-    m_systemInfoProperties << "sw_version";
-    m_systemInfoProperties << "pic_version";
-    m_systemInfoProperties << "rs.db_version";
-    m_systemInfoProperties << "dev_serial_num";
-    m_systemInfoProperties << "dev_config_txt";
+    m_systemInfoProperties << "sw_version"; // controller version
+    //m_systemInfoProperties << "pic_version";
+    m_systemInfoProperties << "rs.db_version"; // hy-switch version
+    //m_systemInfoProperties << "dev_serial_num";
+    //m_systemInfoProperties << "dev_config_txt";
     foreach (const QString &property, m_systemInfoProperties)
         m_propertyHashes.insert(calculateStringHashCode(property) & 0xffff, property);
 
@@ -435,7 +435,9 @@ void KacoClient::resetData()
     m_userId = 0;
     m_mac.clear();
     m_serialNumber.clear();
-    m_firmwareVersion.clear();
+    m_comVersion.clear();
+    m_controllerVersion.clear();
+    m_hyswitchVersion.clear();
     m_picRandomKey.clear();
     m_clientId = 0;
     m_lastPicTimestamp = 0;
@@ -735,11 +737,11 @@ void KacoClient::processPicResponse(const QByteArray &message)
             m_communicationVer8x = true;
         }
 
-        QString firmwareVersion{QString("%1.%2").arg(m_picHighVersion).arg(m_picLowVersion)};
-        qCDebug(dcKacoBh10()) << "- Inverter firmware version: " << firmwareVersion;
-        if (m_firmwareVersion != firmwareVersion) {
-            m_firmwareVersion = firmwareVersion;
-            emit firmwareVersionChanged(m_firmwareVersion);
+        QString comVersion{QString("%1.%2").arg(m_picHighVersion).arg(m_picLowVersion)};
+        qCDebug(dcKacoBh10()) << "- Inverter com version:" << comVersion;
+        if (m_comVersion != comVersion) {
+            m_comVersion = comVersion;
+            emit comVersionChanged(m_comVersion);
         }
 
     }
@@ -849,6 +851,11 @@ void KacoClient::sendInverterRequest()
     // The list of battery property hashes
     foreach (const QString &batteryProperty, m_batteryProperties) {
         stream << static_cast<quint16>(calculateStringHashCode(batteryProperty) & 0xffff);
+    }
+
+    // The list of system info hashes
+    foreach (const QString &systemInfo, m_systemInfoProperties) {
+        stream << static_cast<quint16>(calculateStringHashCode(systemInfo) & 0xffff);
     }
 
     sendData(buildPackage(MessageTypeIds, payload));
@@ -1419,6 +1426,34 @@ void KacoClient::processInverterResponse(const QByteArray &message)
             // Unneeded properties
             stream >> paramValueRaw;
             stream >> paramValueRaw;
+
+            // System info ----------------------------------------
+
+        } else if (paramHash == m_propertyHashes.key("sw_version")) {
+
+            quint8 versionMinor;
+            quint8 versionMajor;
+            stream >> versionMinor;
+            stream >> versionMajor;
+            QString controllerVersion{QString("%1.%2").arg(versionMajor).arg(versionMinor)};
+            qCDebug(dcKacoBh10()) << "Controller version" << controllerVersion;
+            if (m_controllerVersion != controllerVersion) {
+                m_controllerVersion = controllerVersion;
+                emit controllerVersionChanged(m_controllerVersion);
+            }
+
+        } else if (paramHash == m_propertyHashes.key("rs.db_version")) {
+
+            quint8 versionMinor;
+            quint8 versionMajor;
+            stream >> versionMinor;
+            stream >> versionMajor;
+            QString hyswitchVersion{QString("%1.%2").arg(versionMajor).arg(versionMinor)};
+            qCDebug(dcKacoBh10()) << "Hy-switch version" << hyswitchVersion;
+            if (m_hyswitchVersion != hyswitchVersion) {
+                m_hyswitchVersion = hyswitchVersion;
+                emit hyswitchVersionChanged(m_hyswitchVersion);
+            }
 
         } else {
             // Unknown property hash received...let's skip and see if we find more valid data

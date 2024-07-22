@@ -96,7 +96,7 @@ void IntegrationPluginKacoBh10::setupThing(ThingSetupInfo *info)
         MacAddress macAddress = MacAddress(thing->paramValue(inverterThingMacAddressParamTypeId).toString());
         if (macAddress.isNull()) {
             qCWarning(dcKacoBh10()) << thing->name() << "The configured mac address is not valid" << thing->params();
-            info->finish(Thing::ThingErrorInvalidParameter, QT_TR_NOOP("The MAC address is not known. Please reconfigure the thing."));
+            info->finish(Thing::ThingErrorInvalidParameter, QT_TR_NOOP("The configured MAC address is not valid. Please reconfigure the thing."));
             return;
         }
 
@@ -111,9 +111,9 @@ void IntegrationPluginKacoBh10::setupThing(ThingSetupInfo *info)
 
         QHostAddress hostAddress = monitor->networkDeviceInfo().address();
         if (hostAddress.isNull()) {
-            qCWarning(dcKacoBh10()) << thing->name() << "Cannot set up thing. The host address is not known yet...";
+            qCWarning(dcKacoBh10()) << thing->name() << "Cannot set up thing. Cannot get a valid network address from the monitor.";
             hardwareManager()->networkDeviceDiscovery()->unregisterMonitor(m_monitors.take(thing));
-            info->finish(Thing::ThingErrorHardwareFailure, QT_TR_NOOP("The host address is not known yet. Trying later again."));
+            info->finish(Thing::ThingErrorHardwareFailure, QT_TR_NOOP("The host address is not known yet. Try again later."));
             return;
         }
         quint16 port = thing->paramValue(inverterThingPortParamTypeId).toUInt();
@@ -273,8 +273,16 @@ void IntegrationPluginKacoBh10::setupKacoClient(Thing *thing, KacoClient *client
         }
     });
 
-    connect(client, &KacoClient::firmwareVersionChanged, thing, [=](QString firmwareVersion){
-        thing->setStateValue(inverterFirmwareVersionStateTypeId, firmwareVersion);
+    connect(client, &KacoClient::comVersionChanged, thing, [=](QString comVersion){
+        thing->setStateValue(inverterComVersionStateTypeId, comVersion);
+    });
+
+    connect(client, &KacoClient::controllerVersionChanged, thing, [=](QString controllerVersion){
+        thing->setStateValue(inverterControllerVersionStateTypeId, controllerVersion);
+    });
+
+    connect(client, &KacoClient::hyswitchVersionChanged, thing, [=](QString hyswitchVersion){
+        thing->setStateValue(inverterHyswitchVersionStateTypeId, hyswitchVersion);
     });
 
     connect(client, &KacoClient::authorizationChanged, thing, [=](bool authorization){
