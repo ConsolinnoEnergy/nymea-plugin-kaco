@@ -94,9 +94,27 @@
                         },
                         {
                             "id": "1ed4cddf-e012-406f-bb2f-edc7f09b5cac",
-                            "name": "firmwareVersion",
-                            "displayName": "Firmware version",
-                            "displayNameEvent": "Firmware version received",
+                            "name": "comVersion",
+                            "displayName": "COM version",
+                            "displayNameEvent": "COM version received",
+                            "type": "QString",
+                            "defaultValue": "",
+                            "cached": false
+                        },
+                        {
+                            "id": "c0e3c4bb-3cdf-4202-bfc1-f5bd4b6c4bfc",
+                            "name": "controllerVersion",
+                            "displayName": "Controller version",
+                            "displayNameEvent": "Controller version received",
+                            "type": "QString",
+                            "defaultValue": "",
+                            "cached": false
+                        },
+                        {
+                            "id": "52cc1a11-c7e9-4e3b-85f4-1fa85170d3aa",
+                            "name": "hyswitchVersion",
+                            "displayName": "Hy-switch version",
+                            "displayNameEvent": "Hy-switch version received",
                             "type": "QString",
                             "defaultValue": "",
                             "cached": false
