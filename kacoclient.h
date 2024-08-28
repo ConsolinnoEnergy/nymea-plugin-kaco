@@ -116,7 +116,9 @@ public slots:
 signals:
     void connectedChanged(bool connected);
     void stateChanged(State state);
-    void firmwareVersionChanged(const QString &firmwareVersion);
+    void comVersionChanged(const QString &comVersion);
+    void controllerVersionChanged(const QString &controllerVersion);
+    void hyswitchVersionChanged(const QString &hyswitchVersion);
     void authorizationChanged(bool authorization);
 
     void serialNumberChanged(const QString &serialNumber);
@@ -204,7 +206,9 @@ private:
     quint8 m_userType = 0;
     QByteArray m_mac;
     QString m_serialNumber;
-    QString m_firmwareVersion;
+    QString m_comVersion;
+    QString m_controllerVersion;
+    QString m_hyswitchVersion;
     QByteArray m_picRandomKey;
     quint32 m_clientId = 0;
     quint16 m_lastPicTimestamp = 0;
