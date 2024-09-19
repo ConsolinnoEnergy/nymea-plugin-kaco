@@ -1,3 +1,9 @@
+nymea-plugin-kaco (1.7.128-1) buster focal jammy; urgency=medium
+
+* Added display for controller version and hy-switch version.
+
+ -- Sebastian Ringer <s.ringer@consolinno.de> Mon, 22 Jul 2024 11:14:53 +0200
+
 nymea-plugin-kaco (1.7.127) buster focal jammy; urgency=medium
 
 * Added support for multiple inverters.
