@@ -1,4 +1,4 @@
-nymea-plugin-kaco (1.7.128-1) buster focal jammy; urgency=medium
+nymea-plugin-kaco (1.7.128-2) buster focal jammy; urgency=medium
 
 * Added display for controller version and hy-switch version.
 
